@@ -135,7 +135,8 @@ body {
   .add-form-button:hover {
     opacity: 0.9;
   }
-
+  
+/* стили для ошибки */
 .error-message {
   color: #dc3545;
  font-size: 12px;
