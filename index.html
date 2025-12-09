@@ -1,0 +1,209 @@
+<!DOCTYPE html>
+<html>
+  <head>
+    <title>Проект "Комменты"</title>
+    <meta charset="utf-8" />
+    <link rel="stylesheet" href="styles.css" />
+  </head>
+
+  <body>
+    <div class="container">
+      <ul id="ul" class="comments">
+        <li class="comment">
+          <div class="comment-header">
+            <div >Глеб Фокин</div>
+            <div>12.02.22 12:18</div>
+          </div>
+          <div class="comment-body">
+            <div class="comment-text">
+              Это будет первый комментарий на этой странице
+            </div>
+          </div>
+          <div class="comment-footer">
+            <div class="likes">
+              <span class="likes-counter">3</span>
+              <button class="like-button"></button>
+            </div>
+          </div>
+        </li>
+        <li class="comment">
+          <div class="comment-header">
+            <div>Варвара Н.</div>
+            <div>13.02.22 19:22</div>
+          </div>
+          <div class="comment-body">
+            <div class="comment-text">
+              Мне нравится как оформлена эта страница! ❤
+            </div>
+          </div>
+          <div class="comment-footer">
+            <div class="likes">
+              <span class="likes-counter">75</span>
+              <button class="like-button -active-like"></button>
+            </div>
+          </div>
+        </li>
+      </ul>
+      <div class="add-form">
+        <input
+          type="text"
+          id = "name"
+          class="add-form-name"
+          placeholder="Введите ваше имя"
+        />
+        <textarea
+          type="textarea"
+          id = "comments"
+          class="add-form-text"
+          placeholder="Введите ваш коментарий"
+          rows="4"
+        ></textarea>
+        <div class="add-form-row">
+          <button id="massage" class="add-form-button">Написать</button>
+        </div>
+        <div id="errorMessage" class="error-message"></div>
+      </div>
+    </div>
+  </body>
+
+  <script>
+    "use strict";
+     const massageEL = document.getElementById("massage");
+    const nameEL = document.getElementById("name");
+    const commentsEL = document.getElementById("comments");
+    const ulEL = document.getElementById("ul"); 
+    const errorMessage = document.getElementById('errorMessage');
+
+    // Функция даты 
+    function getCurrentDateTime() {
+      const now = new Date();
+      const day = now.getDate().toString().padStart(2, '0');
+      const month = (now.getMonth() + 1).toString().padStart(2, '0');
+      const year = now.getFullYear().toString().slice(-2);
+      const hours = now.getHours().toString().padStart(2, '0'); 
+      const minutes = now.getMinutes().toString().padStart(2, '0');
+
+      return `${day}.${month}.${year} ${hours}:${minutes}`;
+    }
+
+    // функции ошибок (одни для всех полей)
+    function showError(message, inputElement) {
+      errorMessage.textContent = message;
+      errorMessage.style.display = 'block';
+      if (inputElement) {
+        inputElement.style.borderColor = '#dc3545';
+      }
+    }
+
+    function hideError(inputElement) {
+      errorMessage.style.display = 'none';
+      if (inputElement) {
+        inputElement.style.borderColor = '#ddd';
+      }
+    }
+
+    //  валидация (проверяет оба поля сразу)
+    function validateAll() {
+      const nameText = nameEL.value.trim();
+      const commentText = commentsEL.value.trim();
+      let isValid = true;
+
+      // Сбрасываем всё
+      hideError(nameEL);
+      hideError(commentsEL);
+      errorMessage.textContent = '';
+
+      // Проверка имени
+      if (nameText.length === 0) {
+        showError('Напишите своё имя!', nameEL);
+        isValid = false;
+      }
+
+      // Проверка комментария
+      if (commentText.length === 0) {
+        showError('Напишите комментарий!', commentsEL);
+        isValid = false;
+      }
+
+      // Если оба поля пустые
+      if (nameText.length === 0 && commentText.length === 0) {
+        showError('Заполните имя и комментарий!', nameEL);
+      }
+
+      // Разрешаем кнопку только если вск проверки пройдены
+      massageEL.disabled = !isValid;
+
+      return isValid;
+    }
+
+    // Функция добавления нового комментария
+    function addComment() {
+      // Проверяем поля перед добавлением
+      if (!validateAll()) {
+        return;
+      }
+
+      const nameText = nameEL.value.trim();
+      const commentText = commentsEL.value.trim();
+      const currentDateTime = getCurrentDateTime();
+
+      // Создаем HTML нового комментария (с 0 лайков!)
+      const newCommentHTML = `
+        <li class="comment">
+          <div class="comment-header">
+            <div>${nameText}</div>
+            <div>${currentDateTime}</div>
+          </div>
+          <div class="comment-body">
+            <div class="comment-text">
+              ${commentText}
+            </div>
+          </div>
+          <div class="comment-footer">
+            <div class="likes">
+              <span class="likes-counter">0</span> 
+              <button class="like-button"></button>
+            </div>
+          </div>
+        </li>
+      `;
+
+      // Добавляем новый комментарий в конце списка
+      ulEL.innerHTML += newCommentHTML;
+
+      // Очищаем поля и сбрасываем состояние
+      nameEL.value = '';
+      commentsEL.value = '';
+      massageEL.disabled = true;
+      hideError();
+    }
+
+    // Инициализация (запускается при загрузке страницы)
+    function init() {
+      // Валидация при вводе в любое поле
+      nameEL.addEventListener('input', validateAll);
+      commentsEL.addEventListener('input', validateAll);
+
+      // Добавление комментария по клику на кнопку
+      massageEL.addEventListener('click', addComment);
+
+      // Добавление комментария по нажатию Enter (в поле комментария)
+      commentsEL.addEventListener('keypress', function(event) {
+        if (event.key === 'Enter' && !event.shiftKey) {
+          event.preventDefault(); // Чтобы не переносилось на новую строку
+          if (validateAll()) {
+            addComment();
+          }
+        }
+      });
+
+      // Начальное состояние кнопки (отключена)
+      massageEL.disabled = true;
+    }
+
+    // Запускаем приложение
+    init();
+
+    console.log("It works!");
+  </script>
+</html>
