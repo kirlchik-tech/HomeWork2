@@ -68,12 +68,78 @@
   </body>
 
   <script>
-    "use strict";
-     const massageEL = document.getElementById("massage");
+    const massageEL = document.getElementById("massage");
     const nameEL = document.getElementById("name");
     const commentsEL = document.getElementById("comments");
     const ulEL = document.getElementById("ul"); 
     const errorMessage = document.getElementById('errorMessage');
+
+    const comments = [
+        {
+     name: "Глеб Фокин",
+     date: "12.02.22 12:18",
+     text: "Это будет первый комментарий на этой странице",
+     likes: 3,
+     isLiked: false
+   },
+   {
+    name: "Варвара Н.",
+    date: "13.02.22 19:22",
+    text: "Мне нравится как оформлена эта страница! ❤",
+    likes: 75,
+    isLiked: true
+   }
+    ];
+
+    const Rendercomments = () => {
+      const commentHTML = comments.map((comment, index) => {
+
+        const likeButtonClass = comment.isLiked ?  'like-button -active-like' : 'like-button';
+
+        return `<li class="comment">
+        <div class="comment-header">
+          <div>${comment.name}</div>
+          <div>${comment.date}</div>
+        </div>
+        <div class="comment-body">
+          <div class="comment-text">
+            ${comment.text}
+          </div>
+        </div>
+        <div class="comment-footer">
+          <div class="likes">
+            <span class="likes-counter">${comment.likes}</span>
+            <button class="${likeButtonClass}" data-index="${index}"></button>
+          </div>
+        </div>
+      </li>
+    `;
+      }).join('');
+
+      ulEL.innerHTML = commentHTML;
+    };
+
+    Rendercomments();
+    
+   // Обработчик лайков с делегированием
+   ulEL.addEventListener('click', (event) => {
+  if (event.target.classList.contains('like-button')) {
+    const index = parseInt(event.target.getAttribute('data-index'));
+    
+    if (typeof index === 'number' && 
+    !isNaN(index) && 
+    index >= 0 && 
+    index < comments.length) {
+      // Меняем состояние в массиве
+      comments[index].isLiked = !comments[index].isLiked;
+      comments[index].likes += comments[index].isLiked ? 1 : -1;
+      
+      //  перерисовываем ВСЕ комментарии через Rendercomments
+      Rendercomments();
+    }
+  }
+});
+   
 
     // Функция даты 
     function getCurrentDateTime() {
@@ -148,29 +214,18 @@
       const commentText = commentsEL.value.trim();
       const currentDateTime = getCurrentDateTime();
 
-      // Создаем HTML нового комментария (с 0 лайков!)
-      const newCommentHTML = `
-        <li class="comment">
-          <div class="comment-header">
-            <div>${nameText}</div>
-            <div>${currentDateTime}</div>
-          </div>
-          <div class="comment-body">
-            <div class="comment-text">
-              ${commentText}
-            </div>
-          </div>
-          <div class="comment-footer">
-            <div class="likes">
-              <span class="likes-counter">0</span> 
-              <button class="like-button"></button>
-            </div>
-          </div>
-        </li>
-      `;
+      
+      //добавляем комментарий с 0 лайков
+      comments.push({
+        name: nameText,
+        date: currentDateTime,
+        text: commentText,
+        likes: 0,
+        isLiked: false
+    });
 
-      // Добавляем новый комментарий в конце списка
-      ulEL.innerHTML += newCommentHTML;
+     Rendercomments();
+     
 
       // Очищаем поля и сбрасываем состояние
       nameEL.value = '';
@@ -181,6 +236,10 @@
 
     // Инициализация (запускается при загрузке страницы)
     function init() {
+
+      // Первоначальный рендеринг
+    Rendercomments();
+    
       // Валидация при вводе в любое поле
       nameEL.addEventListener('input', validateAll);
       commentsEL.addEventListener('input', validateAll);
@@ -197,6 +256,7 @@
           }
         }
       });
+
 
       // Начальное состояние кнопки (отключена)
       massageEL.disabled = true;
