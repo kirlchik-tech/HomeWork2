@@ -74,6 +74,36 @@
     const ulEL = document.getElementById("ul"); 
     const errorMessage = document.getElementById('errorMessage');
 
+    let replyingTo = null; 
+
+    // функция даты
+    function getCurrentDateTime() {
+    const now = new Date();
+    const day = now.getDate().toString().padStart(2, '0');
+    const month = (now.getMonth() + 1).toString().padStart(2, '0');
+    const year = now.getFullYear().toString().slice(-2);
+    const hours = now.getHours().toString().padStart(2, '0'); 
+    const minutes = now.getMinutes().toString().padStart(2, '0');
+
+    return `${day}.${month}.${year} ${hours}:${minutes}`;
+    }
+
+    // Функции ошибок 
+    function showError(message, inputElement) {
+    errorMessage.textContent = message;
+    errorMessage.style.display = 'block';
+    if (inputElement) {
+    inputElement.style.borderColor = '#dc3545';
+    }
+   }
+
+  function hideError(inputElement) {
+    errorMessage.style.display = 'none';
+    if (inputElement) {
+    inputElement.style.borderColor = '#ddd';
+     }
+    }
+
     const comments = [
         {
      name: "Глеб Фокин",
@@ -91,12 +121,13 @@
    }
     ];
 
+    //рендер нового комента
     const Rendercomments = () => {
-      const commentHTML = comments.map((comment, index) => {
-
-        const likeButtonClass = comment.isLiked ?  'like-button -active-like' : 'like-button';
-
-        return `<li class="comment">
+  const commentHTML = comments.map((comment, index) => {
+    const likeButtonClass = comment.isLiked ? 'like-button -active-like' : 'like-button';
+    const replyClass = replyingTo === index ? 'comment-replying' : '';
+    
+    return `<li class="comment ${replyClass}" data-index="${index}">
         <div class="comment-header">
           <div>${comment.name}</div>
           <div>${comment.date}</div>
@@ -112,128 +143,148 @@
             <button class="${likeButtonClass}" data-index="${index}"></button>
           </div>
         </div>
-      </li>
-    `;
+      </li>`;
       }).join('');
 
       ulEL.innerHTML = commentHTML;
-    };
+     };
 
     Rendercomments();
     
-   // Обработчик лайков с делегированием
    ulEL.addEventListener('click', (event) => {
-  if (event.target.classList.contains('like-button')) {
-    const index = parseInt(event.target.getAttribute('data-index'));
+  const target = event.target;
+  
+  // Если кликнули на лайк - обрабатываем лайк
+  if (target.classList.contains('like-button')) {
+    const index = parseInt(target.getAttribute('data-index'));
     
     if (typeof index === 'number' && 
-    !isNaN(index) && 
-    index >= 0 && 
-    index < comments.length) {
-      // Меняем состояние в массиве
+        !isNaN(index) && 
+        index >= 0 && 
+        index < comments.length) {
       comments[index].isLiked = !comments[index].isLiked;
       comments[index].likes += comments[index].isLiked ? 1 : -1;
+      Rendercomments();
+    }
+    return;
+  }
+  
+  // Если кликнули на сам комментарий (но не на лайк)
+  const commentElement = target.closest('.comment');
+  if (commentElement && !target.closest('.likes')) {
+    const index = parseInt(commentElement.getAttribute('data-index'));
+    
+    if (!isNaN(index) && comments[index]) {
+      const comment = comments[index];
       
-      //  перерисовываем ВСЕ комментарии через Rendercomments
+      //  если уже отвечаем на этот комментарий - снимаем ответ
+      if (replyingTo === index) {
+        replyingTo = null;
+        commentsEL.placeholder = "Введите ваш комментарий";
+      } else {
+        // Иначе начинаем ответ на этот комментарий
+        replyingTo = index;
+        commentsEL.placeholder = `Ответ на комментарий ${comment.name}`;
+      }
+      
+      commentsEL.focus();
       Rendercomments();
     }
   }
 });
+
+//проверка кода на валидность
+function validateAll() {
+  const nameText = nameEL.value.trim();
+  const commentText = commentsEL.value.trim();
+  let isValid = true;
+
+  // Сбрасываем всё
+  hideError(nameEL);
+  hideError(commentsEL);
+  errorMessage.textContent = '';
+
+  // Проверка имени
+  if (nameText.length === 0) {
+    showError('Напишите своё имя!', nameEL);
+    isValid = false;
+  }
+
+  // Проверка комментария
+  if (commentText.length === 0) {
+    showError('Напишите комментарий!', commentsEL);
+    isValid = false;
+  }
+
+  // Если оба поля пустые
+  if (nameText.length === 0 && commentText.length === 0) {
+    showError('Заполните имя и комментарий!', nameEL);
+  }
+
+  // Разрешаем кнопку только если все проверки пройдены
+  massageEL.disabled = !isValid;
+
+  return isValid;
+}
    
 
-    // Функция даты 
-    function getCurrentDateTime() {
-      const now = new Date();
-      const day = now.getDate().toString().padStart(2, '0');
-      const month = (now.getMonth() + 1).toString().padStart(2, '0');
-      const year = now.getFullYear().toString().slice(-2);
-      const hours = now.getHours().toString().padStart(2, '0'); 
-      const minutes = now.getMinutes().toString().padStart(2, '0');
+    // Функциядобавления комментария
+   function addComment() {
+  if (!validateAll()) {
+    return;
+  }
 
-      return `${day}.${month}.${year} ${hours}:${minutes}`;
-    }
+  // Порядок ВАЖЕН: сначала &, потом остальное
+  const nameText = nameEL.value
+    .replaceAll("&", "&amp;")
+    .replaceAll("<", "&lt;")
+    .replaceAll(">", "&gt;")
+    .replaceAll('""', "&quot;")    
+    .replaceAll("''", "&#039;")    
+    .trim();
+    
+  const commentText = commentsEL.value
+    .replaceAll("&", "&amp;")
+    .replaceAll("<", "&lt;")
+    .replaceAll(">", "&gt;")
+    .replaceAll('""', "&quot;")    
+    .replaceAll("''", "&#039;")    
+    .trim();
+    
+  const currentDateTime = getCurrentDateTime();
 
-    // функции ошибок (одни для всех полей)
-    function showError(message, inputElement) {
-      errorMessage.textContent = message;
-      errorMessage.style.display = 'block';
-      if (inputElement) {
-        inputElement.style.borderColor = '#dc3545';
-      }
-    }
+  let finalCommentText = commentText;
 
-    function hideError(inputElement) {
-      errorMessage.style.display = 'none';
-      if (inputElement) {
-        inputElement.style.borderColor = '#ddd';
-      }
-    }
+    // Если это ответ на другой комментарий
+  if (replyingTo !== null && comments[replyingTo]) {
+    const parentComment = comments[replyingTo];
+    
+    
+    const parentName = parentComment.name;  
+    const parentText = parentComment.text; 
+    // Добавляем упоминание в начале
+    finalCommentText = `> ${parentName}: ${parentText}\n\n${commentText}`;
+  }
 
-    //  валидация (проверяет оба поля сразу)
-    function validateAll() {
-      const nameText = nameEL.value.trim();
-      const commentText = commentsEL.value.trim();
-      let isValid = true;
+  comments.push({
+    name: nameText,
+    date: currentDateTime,
+    text: finalCommentText,
+    likes: 0,
+    isLiked: false
+  });
 
-      // Сбрасываем всё
-      hideError(nameEL);
-      hideError(commentsEL);
-      errorMessage.textContent = '';
+  replyingTo = null;
+  commentsEL.placeholder = "Введите ваш комментарий";
 
-      // Проверка имени
-      if (nameText.length === 0) {
-        showError('Напишите своё имя!', nameEL);
-        isValid = false;
-      }
+  Rendercomments();
 
-      // Проверка комментария
-      if (commentText.length === 0) {
-        showError('Напишите комментарий!', commentsEL);
-        isValid = false;
-      }
-
-      // Если оба поля пустые
-      if (nameText.length === 0 && commentText.length === 0) {
-        showError('Заполните имя и комментарий!', nameEL);
-      }
-
-      // Разрешаем кнопку только если вск проверки пройдены
-      massageEL.disabled = !isValid;
-
-      return isValid;
-    }
-
-    // Функция добавления нового комментария
-    function addComment() {
-      // Проверяем поля перед добавлением
-      if (!validateAll()) {
-        return;
-      }
-
-      const nameText = nameEL.value.trim();
-      const commentText = commentsEL.value.trim();
-      const currentDateTime = getCurrentDateTime();
-
-      
-      //добавляем комментарий с 0 лайков
-      comments.push({
-        name: nameText,
-        date: currentDateTime,
-        text: commentText,
-        likes: 0,
-        isLiked: false
-    });
-
-     Rendercomments();
-     
-
-      // Очищаем поля и сбрасываем состояние
-      nameEL.value = '';
-      commentsEL.value = '';
-      massageEL.disabled = true;
-      hideError();
-    }
-
+    // добавляем комментарий с 0 лайков
+  nameEL.value = '';
+  commentsEL.value = '';
+  massageEL.disabled = true;
+  hideError();
+}
     // Инициализация (запускается при загрузке страницы)
     function init() {
 
@@ -243,6 +294,15 @@
       // Валидация при вводе в любое поле
       nameEL.addEventListener('input', validateAll);
       commentsEL.addEventListener('input', validateAll);
+
+        // Сброс ответа при очистке поля комментария
+      commentsEL.addEventListener('input', function() {
+      if (this.value.trim() === '' && replyingTo !== null) {
+      replyingTo = null;
+      commentsEL.placeholder = "Введите ваш комментарий";
+      Rendercomments();
+      }
+      });
 
       // Добавление комментария по клику на кнопку
       massageEL.addEventListener('click', addComment);
@@ -264,6 +324,15 @@
 
     // Запускаем приложение
     init();
+    // кнопка "Отмена ответа":
+    document.addEventListener('keydown', function(event) {
+    if (event.key === 'Escape' && replyingTo !== null) {
+    replyingTo = null;
+    commentsEL.placeholder = "Введите ваш комментарий";
+    Rendercomments();
+     }
+     });
+
 
     console.log("It works!");
   </script>

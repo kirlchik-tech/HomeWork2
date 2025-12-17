@@ -150,3 +150,13 @@ body {
 .task-completed .task-title {
   text-decoration: line-through;
 }
+
+.comment-replying {
+  background-color: #f0f8ff;
+  border-left: 3px solid #4d8af0;
+  padding-left: 10px;
+}
+
+.comment-replying .comment-header {
+  color: #4d8af0;
+}
