@@ -1,109 +1,89 @@
-export function initLikeHandlers(ulEL, comments, renderComments) {
+export function initLikeHandlers(ulEL, app) {
   ulEL.addEventListener("click", (event) => {
     const target = event.target;
 
     if (target.classList.contains("like-button")) {
       const index = parseInt(target.getAttribute("data-index"));
-
-      if (
-        typeof index === "number" &&
-        !isNaN(index) &&
-        index >= 0 &&
-        index < comments.length
-      ) {
-        comments[index].isLiked = !comments[index].isLiked;
-        comments[index].likes += comments[index].isLiked ? 1 : -1;
-        renderComments(comments, ulEL, window.replyingTo);
-      }
+      app.updateCommentLike(index);
       return;
     }
 
     const commentElement = target.closest(".comment");
     if (commentElement && !target.closest(".likes")) {
       const index = parseInt(commentElement.getAttribute("data-index"));
+      const comments = app.getComments();
 
-      if (!isNaN(index) && comments[index]) {
+      if (index >= 0 && index < comments.length) {
         const comment = comments[index];
+        const currentReplyingTo = app.getReplyingTo();
 
-        if (window.replyingTo === index) {
-          window.replyingTo = null;
+        if (currentReplyingTo === index) {
+          app.setReplyingTo(null);
           window.commentsEL.placeholder = "Введите ваш комментарий";
         } else {
-          window.replyingTo = index;
+          app.setReplyingTo(index);
           window.commentsEL.placeholder = `Ответ на комментарий ${comment.name}`;
         }
 
         window.commentsEL.focus();
-        renderComments(comments, ulEL, window.replyingTo);
+        app.render();
       }
     }
   });
 }
 
-export function initFormHandlers(
-  nameEL,
-  commentsEL,
-  massageEL,
-  addComment,
-  validateAll,
-  errorMessage,
-  showError,
-  hideError
-) {
-  nameEL.addEventListener("input", () =>
-    validateAll(
-      nameEL,
-      commentsEL,
-      massageEL,
-      errorMessage,
-      showError,
-      hideError
-    )
-  );
-  commentsEL.addEventListener("input", () =>
-    validateAll(
-      nameEL,
-      commentsEL,
-      massageEL,
-      errorMessage,
-      showError,
-      hideError
-    )
-  );
+export function initFormHandlers(nameEL, commentsEL, massageEL, app) {
+  const validate = () => app.validateForm();
+
+  nameEL.addEventListener("input", validate);
+  commentsEL.addEventListener("input", validate);
 
   commentsEL.addEventListener("input", function () {
-    if (this.value.trim() === "" && window.replyingTo !== null) {
-      window.replyingTo = null;
+    if (this.value.trim() === "" && app.getReplyingTo() !== null) {
+      app.setReplyingTo(null);
       commentsEL.placeholder = "Введите ваш комментарий";
-      window.renderComments();
+      app.render();
     }
   });
 
-  massageEL.addEventListener("click", addComment);
+  massageEL.addEventListener("click", () => {
+    if (app.validateForm()) {
+      const nameText = nameEL.value.trim();
+      const commentText = commentsEL.value.trim();
+
+      if (nameText && commentText) {
+        app.addComment(nameText, commentText);
+        nameEL.value = "";
+        commentsEL.value = "";
+        massageEL.disabled = true;
+        app.hideFormError();
+      }
+    }
+  });
 
   commentsEL.addEventListener("keypress", function (event) {
     if (event.key === "Enter" && !event.shiftKey) {
       event.preventDefault();
-      if (
-        validateAll(
-          nameEL,
-          commentsEL,
-          massageEL,
-          errorMessage,
-          showError,
-          hideError
-        )
-      ) {
-        addComment();
+      if (app.validateForm()) {
+        const nameText = nameEL.value.trim();
+        const commentText = commentsEL.value.trim();
+
+        if (nameText && commentText) {
+          app.addComment(nameText, commentText);
+          nameEL.value = "";
+          commentsEL.value = "";
+          massageEL.disabled = true;
+          app.hideFormError();
+        }
       }
     }
   });
 
   document.addEventListener("keydown", function (event) {
-    if (event.key === "Escape" && window.replyingTo !== null) {
-      window.replyingTo = null;
+    if (event.key === "Escape" && app.getReplyingTo() !== null) {
+      app.setReplyingTo(null);
       commentsEL.placeholder = "Введите ваш комментарий";
-      window.renderComments();
+      app.render();
     }
   });
 }
