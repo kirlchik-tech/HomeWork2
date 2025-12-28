@@ -4,59 +4,89 @@ export function initLikeHandlers(ulEL, app) {
 
     if (target.classList.contains("like-button")) {
       const index = parseInt(target.getAttribute("data-index"));
-      app.updateCommentLike(index);
+
+      if (typeof app.updateCommentLike === "function") {
+        app.updateCommentLike(index);
+      } else {
+        console.error("updateCommentLike не найден в app");
+      }
       return;
     }
 
     const commentElement = target.closest(".comment");
     if (commentElement && !target.closest(".likes")) {
       const index = parseInt(commentElement.getAttribute("data-index"));
-      const comments = app.getComments();
+      const comments = app.getComments ? app.getComments() : [];
 
       if (index >= 0 && index < comments.length) {
         const comment = comments[index];
-        const currentReplyingTo = app.getReplyingTo();
+        const currentReplyingTo = app.getReplyingTo
+          ? app.getReplyingTo()
+          : null;
 
         if (currentReplyingTo === index) {
-          app.setReplyingTo(null);
+          app.setReplyingTo && app.setReplyingTo(null);
           window.commentsEL.placeholder = "Введите ваш комментарий";
         } else {
-          app.setReplyingTo(index);
+          app.setReplyingTo && app.setReplyingTo(index);
           window.commentsEL.placeholder = `Ответ на комментарий ${comment.name}`;
         }
 
         window.commentsEL.focus();
-        app.render();
+        app.render && app.render();
       }
     }
   });
 }
 
 export function initFormHandlers(nameEL, commentsEL, massageEL, app) {
-  const validate = () => app.validateForm();
+  const validate = () => {
+    if (typeof app.validateForm === "function") {
+      return app.validateForm();
+    } else {
+      console.error("validateForm не найден в app");
+      return false;
+    }
+  };
 
   nameEL.addEventListener("input", validate);
   commentsEL.addEventListener("input", validate);
 
   commentsEL.addEventListener("input", function () {
-    if (this.value.trim() === "" && app.getReplyingTo() !== null) {
-      app.setReplyingTo(null);
+    const replyingTo = app.getReplyingTo ? app.getReplyingTo() : null;
+    if (this.value.trim() === "" && replyingTo !== null) {
+      app.setReplyingTo && app.setReplyingTo(null);
       commentsEL.placeholder = "Введите ваш комментарий";
-      app.render();
+      app.render && app.render();
     }
   });
 
   massageEL.addEventListener("click", () => {
-    if (app.validateForm()) {
+    if (validate()) {
       const nameText = nameEL.value.trim();
       const commentText = commentsEL.value.trim();
 
       if (nameText && commentText) {
-        app.addComment(nameText, commentText);
-        nameEL.value = "";
-        commentsEL.value = "";
-        massageEL.disabled = true;
-        app.hideFormError();
+        // addComment теперь async, ждем его завершения
+        const result = app.addComment(nameText, commentText);
+        if (result && typeof result.then === "function") {
+          result
+            .then(() => {
+              nameEL.value = "";
+              commentsEL.value = "";
+              massageEL.disabled = true;
+              app.hideFormError && app.hideFormError();
+            })
+            .catch((error) => {
+              console.error("Ошибка при добавлении:", error);
+            });
+        } else {
+          // Для совместимости, если addComment не async
+          nameEL.value = "";
+          commentsEL.value = "";
+          massageEL.disabled = true;
+          app.hideFormError && app.hideFormError();
+        }
       }
     }
   });
@@ -64,26 +94,40 @@ export function initFormHandlers(nameEL, commentsEL, massageEL, app) {
   commentsEL.addEventListener("keypress", function (event) {
     if (event.key === "Enter" && !event.shiftKey) {
       event.preventDefault();
-      if (app.validateForm()) {
+      if (validate()) {
         const nameText = nameEL.value.trim();
         const commentText = commentsEL.value.trim();
 
         if (nameText && commentText) {
-          app.addComment(nameText, commentText);
-          nameEL.value = "";
-          commentsEL.value = "";
-          massageEL.disabled = true;
-          app.hideFormError();
+          const result = app.addComment(nameText, commentText);
+          if (result && typeof result.then === "function") {
+            result
+              .then(() => {
+                nameEL.value = "";
+                commentsEL.value = "";
+                massageEL.disabled = true;
+                app.hideFormError && app.hideFormError();
+              })
+              .catch((error) => {
+                console.error("Ошибка при добавлении:", error);
+              });
+          } else {
+            nameEL.value = "";
+            commentsEL.value = "";
+            massageEL.disabled = true;
+            app.hideFormError && app.hideFormError();
+          }
         }
       }
     }
   });
 
   document.addEventListener("keydown", function (event) {
-    if (event.key === "Escape" && app.getReplyingTo() !== null) {
-      app.setReplyingTo(null);
+    const replyingTo = app.getReplyingTo ? app.getReplyingTo() : null;
+    if (event.key === "Escape" && replyingTo !== null) {
+      app.setReplyingTo && app.setReplyingTo(null);
       commentsEL.placeholder = "Введите ваш комментарий";
-      app.render();
+      app.render && app.render();
     }
   });
 }

@@ -10,7 +10,6 @@ function init() {
   const massageEL = document.getElementById("massage");
   const errorMessage = document.getElementById("errorMessage");
 
-  // Сохраняем ссылки для глобального доступа (если нужно)
   window.commentsEL = commentsEL;
 
   // Инициализируем приложение
@@ -20,7 +19,7 @@ function init() {
   initLikeHandlers(ulEL, app);
   initFormHandlers(nameEL, commentsEL, massageEL, app);
 
-  console.log("Приложение инициализировано");
+  console.log("✅ Приложение инициализировано");
 }
 
 // Запуск приложения

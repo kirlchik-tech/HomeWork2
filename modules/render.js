@@ -6,23 +6,29 @@ export function renderComments(comments, ulEL, replyingTo) {
         : "like-button";
       const replyClass = replyingTo === index ? "comment-replying" : "";
 
-      return `<li class="comment ${replyClass}" data-index="${index}">
-        <div class="comment-header">
-          <div>${comment.name}</div>
-          <div>${comment.date}</div>
-        </div>
-        <div class="comment-body">
-          <div class="comment-text">
-            ${comment.text}
-          </div>
-        </div>
-        <div class="comment-footer">
-          <div class="likes">
-            <span class="likes-counter">${comment.likes}</span>
-            <button class="${likeButtonClass}" data-index="${index}"></button>
-          </div>
-        </div>
-      </li>`;
+      // Используем displayLikes если есть, иначе обычные likes
+      const likesCount =
+        comment.displayLikes !== undefined
+          ? comment.displayLikes
+          : comment.likes;
+
+      return `<li class="comment ${replyClass}" data-index="${index}" data-id="${comment.id}">
+                <div class="comment-header">
+                    <div>${comment.name}</div>
+                    <div>${comment.date}</div>
+                </div>
+                <div class="comment-body">
+                    <div class="comment-text">
+                        ${comment.text}
+                    </div>
+                </div>
+                <div class="comment-footer">
+                    <div class="likes">
+                        <span class="likes-counter">${likesCount}</span>
+                        <button class="${likeButtonClass}" data-index="${index}"></button>
+                    </div>
+                </div>
+            </li>`;
     })
     .join("");
 
