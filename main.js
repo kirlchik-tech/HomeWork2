@@ -2,7 +2,7 @@ import { initApp } from "./modules/app.js";
 import { initLikeHandlers, initFormHandlers } from "./modules/handlers.js";
 
 // Инициализация приложения
-function init() {
+async function init() {
   // Получаем DOM элементы
   const nameEL = document.getElementById("name");
   const commentsEL = document.getElementById("comments");
@@ -12,8 +12,12 @@ function init() {
 
   window.commentsEL = commentsEL;
 
-  // Инициализируем приложение
-  const app = initApp(nameEL, commentsEL, ulEL, massageEL, errorMessage);
+  const app = await initApp(nameEL, commentsEL, ulEL, massageEL, errorMessage);
+
+  // Проверяем, что app создан и содержит методы
+  console.log("✅ App создан. Методы:", Object.keys(app));
+  console.log("✅ addComment есть?", typeof app.addComment);
+  console.log("✅ validateForm есть?", typeof app.validateForm);
 
   // Инициализируем обработчики
   initLikeHandlers(ulEL, app);

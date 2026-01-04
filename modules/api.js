@@ -1,54 +1,53 @@
-const API_URL = "http://localhost:3000/api/comments";
+const API_URL = "http://localhost:3001/api/todos";
 
-// Функция для загрузки комментариев с сервера
+// 1. загрузка комментариев
 export async function fetchComments() {
-  console.log("📡 fetchComments: начинаю запрос к", API_URL);
-
   try {
     const response = await fetch(API_URL);
-    console.log("📡 fetchComments: получил ответ", response.status);
-
-    if (!response.ok) {
-      console.error("📡 fetchComments: ошибка HTTP", response.status);
-      return [];
-    }
-
     const data = await response.json();
-    console.log("📡 fetchComments: успешно, данных:", data.length);
-    return data;
+    return data.todos || [];
   } catch (error) {
-    console.error("📡 fetchComments: ошибка сети", error.message);
-    return [];
+    console.error("Ошибка загрузки:", error);
+    throw error;
   }
 }
 
-// Функция для отправки комментария на сервер
+// 2. отправка комментария
 export async function postComment(commentData) {
-  console.log("📤 postComment: отправляю", commentData);
-
   try {
+    // Отправляем только текст
+    const apiData = {
+      text: commentData.text,
+    };
+
+    console.log("Отправляю на сервер:", apiData);
+
     const response = await fetch(API_URL, {
       method: "POST",
-      headers: {
-        "Content-Type": "application/json",
-      },
-      body: JSON.stringify(commentData),
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify(apiData),
     });
 
+    // Если сервер ответил ошибкой - просто бросаем исключение
     if (!response.ok) {
-      const errorText = await response.text();
-      throw new Error(`Ошибка ${response.status}: ${errorText}`);
+      throw new Error(`Ошибка сервера: ${response.status}`);
     }
 
-    return await response.json();
-  } catch (error) {
-    console.error("📤 postComment: ошибка", error);
+    // Если успешно - парсим ответ
+    const data = await response.json();
+    const newTodo = data.todos[data.todos.length - 1];
 
+    // Возвращаем структуру для приложения
     return {
-      id: Date.now(),
-      ...commentData,
+      id: newTodo.id,
+      text: newTodo.text,
+      name: commentData.name || "Аноним",
+      date: commentData.date || new Date().toLocaleDateString(),
       likes: 0,
       isLiked: false,
     };
+  } catch (error) {
+    console.error("Ошибка отправки:", error.message);
+    throw error;
   }
 }

@@ -5,10 +5,9 @@ export function initLikeHandlers(ulEL, app) {
     if (target.classList.contains("like-button")) {
       const index = parseInt(target.getAttribute("data-index"));
 
-      if (typeof app.updateCommentLike === "function") {
+      // Безопасная проверка
+      if (app && typeof app.updateCommentLike === "function") {
         app.updateCommentLike(index);
-      } else {
-        console.error("updateCommentLike не найден в app");
       }
       return;
     }
@@ -40,13 +39,13 @@ export function initLikeHandlers(ulEL, app) {
 }
 
 export function initFormHandlers(nameEL, commentsEL, massageEL, app) {
+  // Безопасная функция валидации
   const validate = () => {
-    if (typeof app.validateForm === "function") {
+    if (app && typeof app.validateForm === "function") {
       return app.validateForm();
-    } else {
-      console.error("validateForm не найден в app");
-      return false;
     }
+    console.error("validateForm не найден");
+    return false;
   };
 
   nameEL.addEventListener("input", validate);
