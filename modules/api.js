@@ -1,4 +1,4 @@
-const API_URL = "http://localhost:3001/api/todos";
+const API_URL = "https://webdev-hw-api.vercel.app/api/todos";
 
 // 1. загрузка комментариев
 export async function fetchComments() {
