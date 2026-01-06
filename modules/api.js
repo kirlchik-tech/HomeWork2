@@ -1,53 +1,64 @@
-const API_URL = "https://webdev-hw-api.vercel.app/api/todos";
+// modules/api.js
+const API_URL = "https://wedev-api.sky.pro/api/v1/kirya-solovyev/comments";
 
-// 1. загрузка комментариев
+// Загрузить список комментариев
 export async function fetchComments() {
   try {
     const response = await fetch(API_URL);
+
+    if (!response.ok) {
+      throw new Error(`Ошибка загрузки: ${response.status}`);
+    }
+
     const data = await response.json();
-    return data.todos || [];
+    console.log("✅ Комментарии загружены:", data);
+
+    return data.comments || [];
   } catch (error) {
-    console.error("Ошибка загрузки:", error);
-    throw error;
+    console.error("❌ Ошибка загрузки комментариев:", error.message);
+    throw error; // Пробрасываем ошибку дальше в app.js
   }
 }
 
-// 2. отправка комментария
+// Добавить новый комментарий
 export async function postComment(commentData) {
   try {
-    // Отправляем только текст
+    //  API ожидает объект с полями "text" и "name"
     const apiData = {
       text: commentData.text,
+      name: commentData.name,
     };
 
-    console.log("Отправляю на сервер:", apiData);
+    console.log("📤 Отправляю на сервер:", apiData);
 
     const response = await fetch(API_URL, {
       method: "POST",
-      headers: { "Content-Type": "application/json" },
       body: JSON.stringify(apiData),
     });
 
-    // Если сервер ответил ошибкой - просто бросаем исключение
+    const responseData = await response.json();
+    console.log("📤 Ответ сервера:", responseData);
+
     if (!response.ok) {
-      throw new Error(`Ошибка сервера: ${response.status}`);
+      // Сервер вернул ошибку (400, 500 и т.д.)
+      const errorMessage =
+        responseData.error || `Ошибка сервера ${response.status}`;
+      throw new Error(errorMessage);
     }
 
-    // Если успешно - парсим ответ
-    const data = await response.json();
-    const newTodo = data.todos[data.todos.length - 1];
-
-    // Возвращаем структуру для приложения
+    // Успешный ответ: { "result": "ok" }
     return {
-      id: newTodo.id,
-      text: newTodo.text,
-      name: commentData.name || "Аноним",
-      date: commentData.date || new Date().toLocaleDateString(),
+      id: Date.now(), // Временный ID
+      text: commentData.text,
+      name: commentData.name,
+      // Стурктура сайта
+      author: { name: commentData.name },
+      date: new Date().toISOString(), // Текущая дата
       likes: 0,
       isLiked: false,
     };
   } catch (error) {
-    console.error("Ошибка отправки:", error.message);
+    console.error("❌ Ошибка отправки комментария:", error.message);
     throw error;
   }
 }

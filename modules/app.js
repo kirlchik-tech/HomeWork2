@@ -1,4 +1,4 @@
-import { comments, setComments, addComment } from "./data.js";
+import { comments, setComments } from "./data.js";
 import { getCurrentDateTime, escapeHtml } from "./utils.js";
 import { showError, hideError, validateAll } from "./validation.js";
 import { fetchComments, postComment } from "./api.js";
@@ -37,26 +37,27 @@ function renderCommentsWithLikes(comments, ulEL, replyingTo, localLikes) {
   ulEL.innerHTML = commentHTML;
 }
 
+// загрузка без
 async function loadCommentsFromAPI() {
-  try {
-    console.log("⏳ Пытаюсь загрузить комментарии с API...");
-    const apiTodos = await fetchComments();
+  console.log("⏳ Загружаю комментарии...");
 
-    if (!apiTodos || apiTodos.length === 0) {
-      return null;
-    }
+  // вызываем fetchComments
+  const apiComments = await fetchComments().catch(() => {
+    console.log("⚠️ Не удалось загрузить комментарии");
+    return null;
+  });
 
-    return apiTodos.map((todo) => ({
-      id: todo.id,
-      name: "Аноним",
-      date: new Date().toLocaleDateString("ru-RU"),
-      text: todo.text,
-      likes: 0,
-      isLiked: false,
-    }));
-  } catch (error) {
-    throw error;
-  }
+  if (!apiComments) return null;
+
+  // Преобразуем структуру API
+  return apiComments.map((comment) => ({
+    id: comment.id,
+    name: comment.author?.name || "Аноним",
+    date: comment.date || getCurrentDateTime(),
+    text: comment.text,
+    likes: comment.likes || 0,
+    isLiked: comment.isLiked || false,
+  }));
 }
 
 export async function initApp(
@@ -68,19 +69,21 @@ export async function initApp(
 ) {
   console.log("🎬 Начинаю инициализацию...");
 
+  // 1. Сразу показываем статические комментарии
   renderCommentsWithLikes(comments, ulEL, replyingTo, localLikes);
   massageEL.disabled = true;
 
+  // 2. Загружаем из API в фоне (без обработки ошибок)
   loadCommentsFromAPI()
     .then((apiComments) => {
       if (apiComments && apiComments.length > 0) {
-        console.log("✨ Загружены комментарии из API");
         setComments(apiComments);
         renderCommentsWithLikes(comments, ulEL, replyingTo, localLikes);
+        console.log("✨ Комментарии обновлены из API");
       }
     })
-    .catch((error) => {
-      console.log("⚠️ API недоступно, используем статические комментарии");
+    .catch(() => {
+      // Игнорируем ошибку
     });
 
   console.log("✨ Инициализация завершена");
@@ -94,10 +97,9 @@ export async function initApp(
     render: () =>
       renderCommentsWithLikes(comments, ulEL, replyingTo, localLikes),
 
+    // добавление коммента
     addComment: async (nameText, commentText) => {
-      console.log("🔍 DEBUG addComment вызван:");
-      console.log("nameText:", nameText);
-      console.log("commentText:", commentText);
+      console.log("➕ Добавляю комментарий от", nameText);
 
       const currentDateTime = getCurrentDateTime();
       let finalCommentText = commentText;
@@ -108,44 +110,48 @@ export async function initApp(
       }
 
       const commentData = {
-        name: escapeHtml(nameText),
-        date: currentDateTime,
+        name: nameText,
         text: finalCommentText,
+        date: currentDateTime,
         likes: 0,
         isLiked: false,
       };
 
-      console.log("🔍 commentData.text до отправки:", commentData.text);
-      console.log("🔍 Длина текста:", commentData.text.length);
-      console.log("🔍 Тип text:", typeof commentData.text);
+      const newCommentFromApi = await postComment(commentData).catch(
+        (error) => {
+          console.log("⚠️ Не удалось отправить комментарий на сервер");
+          // Возвращаем локальную версию комментария
+          return {
+            id: Date.now(),
+            ...commentData,
+            author: { name: commentData.name },
+          };
+        }
+      );
 
-      try {
-        console.log("🔄 Вызываю postComment...");
-        const newCommentFromApi = await postComment(commentData);
-        console.log("✅ postComment вернул:", newCommentFromApi);
+      // Создаём комментарий для локального массива
+      const commentToAdd = {
+        id: newCommentFromApi.id || Date.now(),
+        name:
+          newCommentFromApi.name || newCommentFromApi.author?.name || "Аноним",
+        date: newCommentFromApi.date || currentDateTime,
+        text: newCommentFromApi.text,
+        likes: newCommentFromApi.likes || 0,
+        isLiked: newCommentFromApi.isLiked || false,
+      };
 
-        const commentToAdd = {
-          ...newCommentFromApi,
-          name: commentData.name,
-          date: commentData.date,
-          likes: commentData.likes,
-          isLiked: commentData.isLiked,
-        };
+      // Добавляем в массив
+      comments.push(commentToAdd);
 
-        console.log("🔄 Добавляю в локальный массив:", commentToAdd);
-        addComment(commentToAdd);
+      // Сбрасываем состояние ответа
+      replyingTo = null;
+      commentsEL.placeholder = "Введите ваш комментарий";
 
-        replyingTo = null;
-        commentsEL.placeholder = "Введите ваш комментарий";
-        renderCommentsWithLikes(comments, ulEL, replyingTo, localLikes);
+      // Обновляем интерфейс
+      renderCommentsWithLikes(comments, ulEL, replyingTo, localLikes);
 
-        console.log("✅ Комментарий успешно добавлен");
-        return commentToAdd.id;
-      } catch (error) {
-        console.error("❌ Ошибка добавления:", error.message);
-        console.error("❌ Полная ошибка:", error);
-        return null;
-      }
+      console.log("✅ Комментарий добавлен");
+      return commentToAdd.id;
     },
 
     updateCommentLike: (index) => {
@@ -168,6 +174,5 @@ export async function initApp(
     },
 
     hideFormError: () => hideError(errorMessage, nameEL),
-    escapeHtml,
   };
 }
