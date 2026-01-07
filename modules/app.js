@@ -1,5 +1,5 @@
 import { comments, setComments } from "./data.js";
-import { getCurrentDateTime, escapeHtml } from "./utils.js";
+import { getCurrentDateTime } from "./utils.js";
 import { showError, hideError, validateAll } from "./validation.js";
 import { fetchComments, postComment } from "./api.js";
 
@@ -16,13 +16,21 @@ function renderCommentsWithLikes(comments, ulEL, replyingTo, localLikes) {
       const replyClass = replyingTo === index ? "comment-replying" : "";
       const totalLikes = comment.likes + (hasLocalLike ? 1 : 0);
 
+      // Безопасное отображение
+      const safeName = (comment.name || "")
+        .replace(/</g, "&lt;")
+        .replace(/>/g, "&gt;");
+      const safeText = (comment.text || "")
+        .replace(/</g, "&lt;")
+        .replace(/>/g, "&gt;");
+
       return `<li class="comment ${replyClass}" data-index="${index}" data-id="${comment.id}">
                 <div class="comment-header">
-                    <div>${comment.name}</div>
-                    <div>${comment.date}</div>
+                    <div>${safeName}</div>
+                    <div>${comment.date || ""}</div>
                 </div>
                 <div class="comment-body">
-                    <div class="comment-text">${comment.text}</div>
+                    <div class="comment-text">${safeText}</div>
                 </div>
                 <div class="comment-footer">
                     <div class="likes">
@@ -37,36 +45,47 @@ function renderCommentsWithLikes(comments, ulEL, replyingTo, localLikes) {
   ulEL.innerHTML = commentHTML;
 }
 
+// Загрузка комментариев из API
 async function loadCommentsFromAPI() {
-  try {
-    console.log("⏳ Загружаю комментарии...");
-    const apiComments = await fetchComments();
+  console.log("⏳ Загружаю комментарии...");
 
-    if (!apiComments || apiComments.length === 0) return null;
+  const apiComments = await fetchComments();
 
-    // Преобразуем данные API
-    return apiComments.map((comment) => {
-      // Форматируем дату из ISO в дд.мм.гг
-      let displayDate = "Дата неизвестна";
-      if (comment.date) {
-        // Если дата в ISO формате (2023-03-10T10:11:23.237Z)
-        displayDate = formatDateToDDMMYY(comment.date);
-      }
-
-      return {
-        id: comment.id,
-        name: comment.author?.name || "Аноним",
-        date: displayDate, // Форматированная дата
-        text: comment.text,
-        likes: comment.likes || 0,
-        isLiked: comment.isLiked || false,
-      };
-    });
-  } catch (error) {
-    console.log("⚠️ Ошибка загрузки:", error.message);
+  if (!apiComments || apiComments.length === 0) {
+    console.log("⚠️ Нет комментариев для загрузки");
     return null;
   }
+
+  // Преобразуем дату из формата API  в дд.мм.гг
+  const formattedComments = apiComments.map((comment) => {
+    let displayDate = "Дата неизвестна";
+
+    if (comment.date) {
+      const date = new Date(comment.date);
+      if (!isNaN(date)) {
+        displayDate =
+          String(date.getDate()).padStart(2, "0") +
+          "." +
+          String(date.getMonth() + 1).padStart(2, "0") +
+          "." +
+          String(date.getFullYear()).slice(-2);
+      }
+    }
+
+    return {
+      id: comment.id,
+      name: comment.author?.name || "Аноним",
+      date: displayDate,
+      text: comment.text,
+      likes: comment.likes || 0,
+      isLiked: comment.isLiked || false,
+    };
+  });
+
+  console.log("✅ Комментарии преобразованы");
+  return formattedComments;
 }
+
 export async function initApp(
   nameEL,
   commentsEL,
@@ -76,22 +95,18 @@ export async function initApp(
 ) {
   console.log("🎬 Начинаю инициализацию...");
 
-  // 1. Сразу показываем статические комментарии
+  // Показываем то, что есть
   renderCommentsWithLikes(comments, ulEL, replyingTo, localLikes);
   massageEL.disabled = true;
 
-  // 2. Загружаем из API в фоне (без обработки ошибок)
-  loadCommentsFromAPI()
-    .then((apiComments) => {
-      if (apiComments && apiComments.length > 0) {
-        setComments(apiComments);
-        renderCommentsWithLikes(comments, ulEL, replyingTo, localLikes);
-        console.log("✨ Комментарии обновлены из API");
-      }
-    })
-    .catch(() => {
-      // Игнорируем ошибку
-    });
+  // Загружаем из API в фоне
+  loadCommentsFromAPI().then((apiComments) => {
+    if (apiComments && apiComments.length > 0) {
+      setComments(apiComments);
+      renderCommentsWithLikes(comments, ulEL, replyingTo, localLikes);
+      console.log("✨ Комментарии обновлены");
+    }
+  });
 
   console.log("✨ Инициализация завершена");
 
@@ -104,11 +119,17 @@ export async function initApp(
     render: () =>
       renderCommentsWithLikes(comments, ulEL, replyingTo, localLikes),
 
-    // добавление коммента
     addComment: async (nameText, commentText) => {
       console.log("➕ Добавляю комментарий от", nameText);
 
-      const currentDateTime = getCurrentDateTime();
+      const date = new Date();
+      const formattedDate =
+        String(date.getDate()).padStart(2, "0") +
+        "." +
+        String(date.getMonth() + 1).padStart(2, "0") +
+        "." +
+        String(date.getFullYear()).slice(-2);
+
       let finalCommentText = commentText;
 
       if (replyingTo !== null && comments[replyingTo]) {
@@ -119,38 +140,29 @@ export async function initApp(
       const commentData = {
         name: nameText,
         text: finalCommentText,
-        date: currentDateTime,
+        date: formattedDate,
         likes: 0,
         isLiked: false,
       };
 
-      const newCommentFromApi = await postComment(commentData).catch(
-        (error) => {
-          console.log("⚠️ Не удалось отправить комментарий на сервер");
-          // Возвращаем локальную версию комментария
-          return {
-            id: Date.now(),
-            ...commentData,
-            author: { name: commentData.name },
-          };
-        }
-      );
+      // Пытаемся отправить на сервер
+      const newCommentFromApi = await postComment(commentData);
 
-      // Создаём комментарий для локального массива
-      const commentToAdd = {
-        id: newCommentFromApi.id || Date.now(),
-        name:
-          newCommentFromApi.name || newCommentFromApi.author?.name || "Аноним",
-        date: newCommentFromApi.date || currentDateTime,
-        text: newCommentFromApi.text,
-        likes: newCommentFromApi.likes || 0,
-        isLiked: newCommentFromApi.isLiked || false,
+      // Если сервер не ответил, создаём локальный комментарий
+      const commentToAdd = newCommentFromApi || {
+        id: Date.now(),
+        name: commentData.name,
+        text: commentData.text,
+        author: { name: commentData.name },
+        date: commentData.date,
+        likes: 0,
+        isLiked: false,
       };
 
       // Добавляем в массив
       comments.push(commentToAdd);
 
-      // Сбрасываем состояние ответа
+      // Сбрасываем состояние
       replyingTo = null;
       commentsEL.placeholder = "Введите ваш комментарий";
 
