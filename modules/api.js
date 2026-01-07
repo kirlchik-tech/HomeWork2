@@ -1,4 +1,3 @@
-// modules/api.js
 const API_URL = "https://wedev-api.sky.pro/api/v1/kirya-solovyev/comments";
 
 // Загрузить список комментариев
@@ -23,10 +22,12 @@ export async function fetchComments() {
 // Добавить новый комментарий
 export async function postComment(commentData) {
   try {
-    //  API ожидает объект с полями "text" и "name"
+    const cleanText = removeHtmlTags(commentData.text);
+    const cleanName = removeHtmlTags(commentData.name);
+
     const apiData = {
-      text: commentData.text,
-      name: commentData.name,
+      text: cleanText,
+      name: cleanName,
     };
 
     console.log("📤 Отправляю на сервер:", apiData);
@@ -40,20 +41,20 @@ export async function postComment(commentData) {
     console.log("📤 Ответ сервера:", responseData);
 
     if (!response.ok) {
-      // Сервер вернул ошибку (400, 500 и т.д.)
       const errorMessage =
         responseData.error || `Ошибка сервера ${response.status}`;
       throw new Error(errorMessage);
     }
 
-    // Успешный ответ: { "result": "ok" }
+    // Форматируем дату в дд.мм.гг
+    const formattedDate = formatDateToDDMMYY(new Date().toISOString());
+
     return {
-      id: Date.now(), // Временный ID
-      text: commentData.text,
-      name: commentData.name,
-      // Стурктура сайта
-      author: { name: commentData.name },
-      date: new Date().toISOString(), // Текущая дата
+      id: Date.now(),
+      text: cleanText,
+      name: cleanName,
+      author: { name: cleanName },
+      date: formattedDate, // Дата в формате дд.мм.гг
       likes: 0,
       isLiked: false,
     };
@@ -61,4 +62,27 @@ export async function postComment(commentData) {
     console.error("❌ Ошибка отправки комментария:", error.message);
     throw error;
   }
+}
+
+// Функция для удаления HTML-тегов
+function removeHtmlTags(text) {
+  if (!text) return "";
+  return text
+    .toString()
+    .replace("<[^>]*>", "")
+    .replace("&lt", "<")
+    .replace("&gt", ">")
+    .replace("&amp", "&")
+    .replace("&quot", '"')
+    .replace("&lsquo", "'")
+    .trim();
+}
+
+// Функция форматирования даты (если нет в utils.js)
+function formatDateToDDMMYY(dateString) {
+  const date = new Date(dateString);
+  const day = String(date.getDate()).padStart(2, "0");
+  const month = String(date.getMonth() + 1).padStart(2, "0");
+  const year = String(date.getFullYear()).slice(-2);
+  return `${day}.${month}.${year}`;
 }

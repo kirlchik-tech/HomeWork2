@@ -10,6 +10,15 @@ export function getCurrentDateTime() {
   return `${day}.${month}.${year} ${hours}:${minutes}`;
 }
 
+export function formatDateToDDMMYY(dateString) {
+  const date = new Date(dateString);
+  const day = String(date.getDate()).padStart(2, "0");
+  const month = String(date.getMonth() + 1).padStart(2, "0");
+  const year = String(date.getFullYear()).slice(-2); // Последние 2 цифры года
+
+  return `${day}.${month}.${year}`;
+}
+
 // Функция экранирования HTML
 export function escapeHtml(text) {
   return text

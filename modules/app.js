@@ -37,29 +37,36 @@ function renderCommentsWithLikes(comments, ulEL, replyingTo, localLikes) {
   ulEL.innerHTML = commentHTML;
 }
 
-// загрузка без
 async function loadCommentsFromAPI() {
-  console.log("⏳ Загружаю комментарии...");
+  try {
+    console.log("⏳ Загружаю комментарии...");
+    const apiComments = await fetchComments();
 
-  // вызываем fetchComments
-  const apiComments = await fetchComments().catch(() => {
-    console.log("⚠️ Не удалось загрузить комментарии");
+    if (!apiComments || apiComments.length === 0) return null;
+
+    // Преобразуем данные API
+    return apiComments.map((comment) => {
+      // Форматируем дату из ISO в дд.мм.гг
+      let displayDate = "Дата неизвестна";
+      if (comment.date) {
+        // Если дата в ISO формате (2023-03-10T10:11:23.237Z)
+        displayDate = formatDateToDDMMYY(comment.date);
+      }
+
+      return {
+        id: comment.id,
+        name: comment.author?.name || "Аноним",
+        date: displayDate, // Форматированная дата
+        text: comment.text,
+        likes: comment.likes || 0,
+        isLiked: comment.isLiked || false,
+      };
+    });
+  } catch (error) {
+    console.log("⚠️ Ошибка загрузки:", error.message);
     return null;
-  });
-
-  if (!apiComments) return null;
-
-  // Преобразуем структуру API
-  return apiComments.map((comment) => ({
-    id: comment.id,
-    name: comment.author?.name || "Аноним",
-    date: comment.date || getCurrentDateTime(),
-    text: comment.text,
-    likes: comment.likes || 0,
-    isLiked: comment.isLiked || false,
-  }));
+  }
 }
-
 export async function initApp(
   nameEL,
   commentsEL,
