@@ -1,71 +1,46 @@
 <!doctype html>
 <html>
-  <head>
-    <title>Проект "Комменты"</title>
-    <meta charset="utf-8" />
-    <link rel="stylesheet" href="styles.css" />
-  </head>
+  <html>
+    <head>
+      <title>Проект "Комменты"</title>
+      <meta charset="utf-8" />
+      <link rel="stylesheet" href="styles.css" />
+    </head>
 
-  <body>
-    <!-- комментарии -->
-    <div class="container">
-      <ul id="ul" class="comments">
-        <!-- <li class="comment">
-          <div class="comment-header">
-            <div>Глеб Фокин</div>
-            <div>12.02.22 12:18</div>
-          </div>
-          <div class="comment-body">
-            <div class="comment-text">
-              Это будет первый комментарий на этой странице
-            </div>
-          </div>
-          <div class="comment-footer">
-            <div class="likes">
-              <span class="likes-counter">3</span>
-              <button class="like-button"></button>
-            </div>
-          </div>
-        </li>
-        <li class="comment">
-          <div class="comment-header">
-            <div>Варвара Н.</div>
-            <div>13.02.22 19:22</div>
-          </div>
-          <div class="comment-body">
-            <div class="comment-text">
-              Мне нравится как оформлена эта страница! ❤
-            </div>
-          </div>
-          <div class="comment-footer">
-            <div class="likes">
-              <span class="likes-counter">75</span>
-              <button class="like-button -active-like"></button>
-            </div>
-          </div>
-        </li> -->
-      </ul>
-      <div class="add-form">
-        <input
-          type="text"
-          id="name"
-          class="add-form-name"
-          placeholder="Введите ваше имя"
-        />
-        <textarea
-          type="textarea"
-          id="comments"
-          class="add-form-text"
-          placeholder="Введите ваш коментарий"
-          rows="4"
-        ></textarea>
-        <div class="add-form-row">
-          <button id="massage" class="add-form-button">Написать</button>
+    <body>
+      <div class="container">
+        <div id="comments-loading" class="com-loading">
+          <p class="com-load_text">Загрузка комментариев...</p>
         </div>
-        <div id="errorMessage" class="error-message"></div>
-      </div>
-    </div>
-  </body>
 
-  <script type="module" src="main.js"></script>
+        <ul id="ul" class="comments"></ul>
+
+        <div id="add-loading" class="add-load">
+          <p class="add-load_text">Комментарий добавляется...</p>
+        </div>
+
+        <div id="comment-form" class="add-form">
+          <input
+            type="text"
+            id="name"
+            class="add-form-name"
+            placeholder="Введите ваше имя"
+          />
+          <textarea
+            type="textarea"
+            id="comments"
+            class="add-form-text"
+            placeholder="Введите ваш комментарий"
+            rows="4"
+          ></textarea>
+          <div class="add-form-row">
+            <button id="massage" class="add-form-button">Написать</button>
+          </div>
+          <div id="errorMessage" class="error-message"></div>
+        </div>
+      </div>
+
+      <script type="module" src="main.js"></script>
+    </body>
+  </html>
 </html>

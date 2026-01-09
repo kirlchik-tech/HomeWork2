@@ -1,13 +1,17 @@
 export function showError(errorMessage, inputElement, message) {
-  errorMessage.textContent = message;
-  errorMessage.style.display = "block";
+  if (errorMessage) {
+    errorMessage.textContent = message;
+    errorMessage.style.display = "block";
+  }
   if (inputElement) {
     inputElement.style.borderColor = "#dc3545";
   }
 }
 
 export function hideError(errorMessage, inputElement) {
-  errorMessage.style.display = "none";
+  if (errorMessage) {
+    errorMessage.style.display = "none";
+  }
   if (inputElement) {
     inputElement.style.borderColor = "#ddd";
   }
@@ -28,7 +32,9 @@ export function validateAll(
   // Сбрасываем всё
   hideError(errorMessage, nameEL);
   hideError(errorMessage, commentsEL);
-  errorMessage.textContent = "";
+  if (errorMessage) {
+    errorMessage.textContent = "";
+  }
 
   // Проверка имени
   if (nameText.length === 0) {
@@ -48,7 +54,9 @@ export function validateAll(
   }
 
   // Разрешаем кнопку только если все проверки пройдены
-  massageEL.disabled = !isValid;
+  if (massageEL) {
+    massageEL.disabled = !isValid;
+  }
 
   return isValid;
 }

@@ -1,92 +1,66 @@
 const API_URL = "https://wedev-api.sky.pro/api/v1/kirya-solovyev/comments";
 
 // Загрузить список комментариев
-export async function fetchComments() {
-  const response = await fetch(API_URL);
-
-  if (!response.ok) {
-    console.error("❌ Ошибка загрузки:", response.status);
-    return [];
-  }
-
-  const data = await response.json();
-  console.log("✅ Комментарии загружены");
-  return data.comments || [];
+export function fetchComments() {
+  return fetch(API_URL)
+    .then((response) => {
+      if (!response.ok) {
+        console.error("❌ Ошибка загрузки:", response.status);
+        return Promise.reject("Ошибка сети");
+      }
+      return response.json();
+    })
+    .then((data) => {
+      console.log("✅ Комментарии загружены");
+      return data.comments || [];
+    });
 }
 
 // Добавить новый комментарий
-export async function postComment(commentData) {
-  console.log("📤 Исходные данные:", {
-    name: commentData.name,
-    text: commentData.text,
-  });
+export function postComment(commentData) {
+  console.log("📤 Отправляю на сервер:", commentData);
 
-  // Очищаем текст (c проверкой)
-  const cleanText = removeHtmlTags(commentData.text || "");
-  const cleanName = removeHtmlTags(commentData.name || "");
-
-  console.log("📤 После очистки:", {
-    name: cleanName,
-    text: cleanText,
-    originalTextLength: commentData.text?.length,
-    cleanedTextLength: cleanText.length,
-  });
-
-  const apiData = {
-    text: cleanText,
-    name: cleanName,
-  };
-
-  console.log("📤 Отправляю на сервер:", apiData);
-
-  const response = await fetch(API_URL, {
+  return fetch(API_URL, {
     method: "POST",
-    body: JSON.stringify(apiData),
-  });
+    body: JSON.stringify(commentData),
+  })
+    .then((response) => response.json())
+    .then((responseData) => {
+      console.log("📤 Ответ сервера:", responseData);
 
-  const responseData = await response.json();
-  console.log("📤 Ответ сервера:", responseData);
+      if (!responseData.error) {
+        const date = new Date();
+        const formattedDate =
+          String(date.getDate()).padStart(2, "0") +
+          "." +
+          String(date.getMonth() + 1).padStart(2, "0") +
+          "." +
+          String(date.getFullYear()).slice(-2);
 
-  if (!response.ok) {
-    console.error("❌ Ошибка сервера:", responseData.error || response.status);
-    return null;
-  }
-
-  const date = new Date();
-  const formattedDate =
-    String(date.getDate()).padStart(2, "0") +
-    "." +
-    String(date.getMonth() + 1).padStart(2, "0") +
-    "." +
-    String(date.getFullYear()).slice(-2);
-
-  return {
-    id: Date.now(),
-    text: cleanText,
-    name: cleanName,
-    author: { name: cleanName },
-    date: formattedDate,
-    likes: 0,
-    isLiked: false,
-  };
+        return {
+          id: Date.now(),
+          text: commentData.text,
+          name: commentData.name,
+          author: { name: commentData.name },
+          date: formattedDate,
+          likes: 0,
+          isLiked: false,
+        };
+      } else {
+        return Promise.reject(responseData.error);
+      }
+    });
 }
 
 // Функция удаления HTML-тегов
-function removeHtmlTags(text) {
+function escapeHtml(text) {
   if (!text) return "";
 
-  console.log("🧹 Очищаю текст:", text.substring(0, 50) + "...");
-
-  const result = text
+  return text
     .toString()
-    .replace("<[^>]*", "")
-    .replace("&lt", "<")
-    .replace("&gt", ">")
-    .replace("&amp", "&")
-    .replace("&quot", '"')
-    .replace("&lsquo", "'")
-    .trim();
-
-  console.log("🧹 Результат очистки:", result.substring(0, 50) + "...");
-  return result;
+    .replace(/&/g, "&amp;")
+    .replace(/</g, "&lt;")
+    .replace(/>/g, "&gt;")
+    .replace(/"/g, "&quot;")
+    .replace(/'/g, "&#039;");
 }

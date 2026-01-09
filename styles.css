@@ -143,13 +143,6 @@ body {
   margin-top: 5px;
   display: none;
 }
-.task-completed {
-  opacity: 0.7;
-  border-left-color: #28a745;
-}
-.task-completed .task-title {
-  text-decoration: line-through;
-}
 
 .comment-replying {
   border-color: 3px solid #89f04d;
@@ -158,4 +151,55 @@ body {
 
 .comment-replying .comment-header {
   color: #96f04d;
+}
+
+/* Анимация для лоадера лайка */
+@keyframes rotating {
+  from {
+    transform: rotate(0deg);
+  }
+  25% {
+    transform: rotate(30deg);
+  }
+  75% {
+    transform: rotate(-30deg);
+  }
+  to {
+    transform: rotate(0deg);
+  }
+}
+
+.like-button.-loading-like {
+  animation: rotating 0.5s linear infinite;
+  opacity: 0.7;
+  cursor: not-allowed;
+}
+
+.like-button:disabled {
+  cursor: not-allowed;
+  opacity: 0.7;
+}
+
+#comments-loading,
+#add-loading {
+  display: none;
+  width: 596px;
+  margin: 0 auto 20px auto;
+  text-align: center;
+}
+
+.com-load_text,
+.add-load_text {
+  padding: 20px;
+  background: rgba(188, 236, 48, 0.1);
+  border-radius: 8px;
+  border: 2px solid #bcec30;
+  color: #bcec30;
+  font-size: 18px;
+  font-weight: bold;
+}
+
+#comments-loading.active,
+#add-loading.active {
+  display: block;
 }
