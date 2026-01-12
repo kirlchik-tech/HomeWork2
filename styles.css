@@ -104,6 +104,8 @@ body {
   font-family: Helvetica;
   border-radius: 8px;
   border: none;
+  box-sizing: border-box;
+  width: 100%;
 }
 
 .add-form-name {
@@ -115,6 +117,7 @@ body {
   margin-top: 12px;
   padding: 22px;
   resize: none;
+  width: 100%;
 }
 
 .add-form-row {
@@ -180,8 +183,8 @@ body {
   opacity: 0.7;
 }
 
-#comments-loading,
-#add-loading {
+.comments-loading,
+.add-loading {
   display: none;
   width: 596px;
   margin: 0 auto 20px auto;
@@ -197,9 +200,4 @@ body {
   color: #bcec30;
   font-size: 18px;
   font-weight: bold;
-}
-
-#comments-loading.active,
-#add-loading.active {
-  display: block;
 }

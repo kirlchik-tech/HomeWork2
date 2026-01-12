@@ -6,6 +6,10 @@ import { delay } from "./utils.js";
 let replyingTo = null;
 let localLikes = {};
 let loadingLikes = {};
+let formData = {
+  name: "",
+  text: "",
+};
 
 function renderCommentsWithLikes(
   comments,
@@ -55,41 +59,20 @@ function renderCommentsWithLikes(
   ulEL.innerHTML = commentHTML;
 }
 
-function escapeHtml(text) {
-  if (!text) return "";
-  const div = document.createElement("div");
-  div.textContent = text;
-  return div.innerHTML;
-}
-
 // Загрузка комментариев из API с лоадером
 function loadCommentsWithLoader(commentsLoadingEL, ulEL) {
-  // Проверяем, что элемент существует
   if (!commentsLoadingEL) {
     console.error("❌ commentsLoadingEL не найден");
     return Promise.resolve();
   }
 
   console.log("⏳ Показываю лоадер загрузки...");
-
-  // Гарантированно показываем лоадер
   commentsLoadingEL.style.display = "block";
-  commentsLoadingEL.classList.add("active");
 
   return fetchComments()
     .then((apiComments) => {
       console.log("✅ Комментарии получены, скрываю лоадер");
-
-      // Гарантированно скрываем лоадер
       commentsLoadingEL.style.display = "none";
-      commentsLoadingEL.classList.remove("active");
-
-      // Также скрываем лоадер добавления на всякий случай
-      const addLoadingEL = document.getElementById("add-loading");
-      if (addLoadingEL) {
-        addLoadingEL.style.display = "none";
-        addLoadingEL.classList.remove("active");
-      }
 
       if (apiComments && apiComments.length > 0) {
         const formattedComments = apiComments.map((comment) => {
@@ -132,14 +115,24 @@ function loadCommentsWithLoader(commentsLoadingEL, ulEL) {
     })
     .catch((error) => {
       console.log("❌ Ошибка, скрываю лоадер");
+      commentsLoadingEL.style.display = "none";
 
-      // Гарантированно скрываем при ошибке
-      if (commentsLoadingEL) {
-        commentsLoadingEL.style.display = "none";
-        commentsLoadingEL.classList.remove("active");
+      // Показываем ошибку пользователю
+      let userMessage = error.message;
+
+      if (error.message.includes("Проблемы с интернетом")) {
+        userMessage =
+          "Не удалось загрузить комментарии. Проверьте интернет-соединение.";
+      } else if (error.message.includes("Ошибка сервера")) {
+        userMessage = "Сервер временно недоступен. Попробуйте позже.";
       }
 
       console.error("❌ Ошибка загрузки:", error);
+
+      // Показываем alert в режиме отладки
+      if (window.DEBUG) {
+        alert(`Ошибка загрузки: ${userMessage}`);
+      }
     });
 }
 
@@ -154,6 +147,23 @@ export function initApp(
   formEL
 ) {
   console.log("🎬 Начинаю инициализацию...");
+
+  // Сохраняем ссылки на элементы формы
+  window.nameEL = nameEL;
+  window.commentsEL = commentsEL;
+
+  // Восстанавливаем данные формы если они есть
+  nameEL.value = formData.name;
+  commentsEL.value = formData.text;
+
+  // Слушаем ввод в форму для сохранения данных
+  nameEL.addEventListener("input", () => {
+    formData.name = nameEL.value;
+  });
+
+  commentsEL.addEventListener("input", () => {
+    formData.text = commentsEL.value;
+  });
 
   // Проверяем, что все элементы существуют
   if (!commentsLoadingEL) {
@@ -204,9 +214,13 @@ export function initApp(
         return Promise.reject("Форма не найдена");
       }
 
+      // Сохраняем текущие данные
+      formData.name = nameText;
+      formData.text = commentText;
+
+      // Скрываем форму, показываем лоадер
       formEL.style.display = "none";
       addLoadingEL.style.display = "block";
-      addLoadingEL.classList.add("active");
 
       const date = new Date();
       const formattedDate =
@@ -220,7 +234,6 @@ export function initApp(
 
       if (replyingTo !== null && comments[replyingTo]) {
         const parentComment = comments[replyingTo];
-
         finalCommentText = `${parentComment.name}: ${parentComment.text}\n\n${commentText}`;
       }
 
@@ -229,49 +242,95 @@ export function initApp(
         text: finalCommentText,
       };
 
-      return postComment(commentData)
-        .then((newCommentFromApi) => {
-          const commentToAdd = newCommentFromApi || {
-            id: Date.now(),
-            name: commentData.name,
-            text: commentData.text,
-            author: { name: commentData.name },
-            date: formattedDate,
-            likes: 0,
-            isLiked: false,
-          };
+      // Функция для повторной попытки отправки
+      const retryPost = (attempt = 1, maxAttempts = 3) => {
+        return postComment(commentData)
+          .then((newCommentFromApi) => {
+            const commentToAdd = newCommentFromApi || {
+              id: Date.now(),
+              name: commentData.name,
+              text: commentData.text,
+              author: { name: commentData.name },
+              date: formattedDate,
+              likes: 0,
+              isLiked: false,
+            };
 
-          comments.push(commentToAdd);
-          replyingTo = null;
-          commentsEL.placeholder = "Введите ваш комментарий";
+            comments.push(commentToAdd);
+            replyingTo = null;
+            commentsEL.placeholder = "Введите ваш комментарий";
 
-          formEL.style.display = "block";
-          addLoadingEL.style.display = "none";
-          addLoadingEL.classList.remove("active");
+            // Очищаем форму только при успехе
+            nameEL.value = "";
+            commentsEL.value = "";
+            formData.name = "";
+            formData.text = "";
 
-          renderCommentsWithLikes(
-            comments,
-            ulEL,
-            replyingTo,
-            localLikes,
-            loadingLikes
-          );
-
-          console.log("✅ Комментарий добавлен");
-          return commentToAdd.id;
-        })
-        .catch((error) => {
-          if (formEL && addLoadingEL) {
+            // Показываем форму обратно
             formEL.style.display = "block";
             addLoadingEL.style.display = "none";
-            addLoadingEL.classList.remove("active");
-          }
 
-          showError(errorMessage, null, "Не удалось добавить комментарий");
-          console.error("❌ Ошибка:", error);
+            renderCommentsWithLikes(
+              comments,
+              ulEL,
+              replyingTo,
+              localLikes,
+              loadingLikes
+            );
 
-          throw error;
-        });
+            console.log("✅ Комментарий добавлен");
+            return commentToAdd.id;
+          })
+          .catch((error) => {
+            // Показываем форму обратно при ошибке
+            formEL.style.display = "block";
+            addLoadingEL.style.display = "none";
+
+            // Восстанавливаем данные формы
+            nameEL.value = formData.name;
+            commentsEL.value = formData.text;
+
+            // Проверяем тип ошибки
+            if (
+              error.message.includes("Ошибка сервера") &&
+              attempt < maxAttempts
+            ) {
+              console.log(
+                `🔄 Повторная попытка ${attempt + 1}/${maxAttempts}...`
+              );
+
+              // Ждём 2 секунды перед повторной попыткой
+              return delay(2000).then(() => {
+                return retryPost(attempt + 1, maxAttempts);
+              });
+            } else {
+              // Показываем пользователю ошибку
+              let userMessage = error.message;
+
+              if (error.message.includes("Проблемы с интернетом")) {
+                userMessage =
+                  "Нет интернета. Проверьте соединение и попробуйте снова.";
+              } else if (
+                error.message.includes("Имя или комментарий слишком короткие")
+              ) {
+                userMessage =
+                  "Имя и комментарий должны быть не короче 3 символов.";
+              }
+
+              // Показываем alert как требует задание
+              alert(`Ошибка: ${userMessage}`);
+
+              // Показываем ошибку в форме
+              showError(errorMessage, null, userMessage);
+              console.error("❌ Ошибка:", error);
+
+              throw error;
+            }
+          });
+      };
+
+      // Начинаем первую попытку
+      return retryPost();
     },
 
     updateCommentLike: (index) => {
