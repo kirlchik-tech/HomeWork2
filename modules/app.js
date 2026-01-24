@@ -2,6 +2,7 @@ import { comments, setComments } from "./data.js";
 import { showError } from "./validation.js";
 import { fetchComments, postComment } from "./api.js";
 import { delay } from "./utils.js";
+import { getToken, getUser } from "./auth.js";
 
 let replyingTo = null;
 let localLikes = {};
@@ -11,12 +12,25 @@ let formData = {
   text: "",
 };
 
+// Функция для безопасного отображения HTML
+function escapeHtml(text) {
+  if (typeof text !== "string") return "";
+
+  return text
+    .replace(/&/g, "&amp;")
+    .replace(/</g, "&lt;")
+    .replace(/>/g, "&gt;")
+    .replace(/"/g, "&quot;")
+    .replace(/'/g, "&#039;")
+    .replace(/\n/g, "<br>");
+}
+
 function renderCommentsWithLikes(
   comments,
   ulEL,
   replyingTo,
   localLikes,
-  loadingLikes = {}
+  loadingLikes = {},
 ) {
   const commentHTML = comments
     .map((comment, index) => {
@@ -33,8 +47,9 @@ function renderCommentsWithLikes(
       const disabledAttr = isLikeLoading ? "disabled" : "";
       const totalLikes = comment.likes + (hasLocalLike ? 1 : 0);
 
-      const displayName = comment.name || "";
-      const displayText = comment.text || "";
+      // Безопасное отображение с помощью escapeHtml
+      const displayName = escapeHtml(comment.name || "");
+      const displayText = escapeHtml(comment.text || "");
 
       return `<li class="comment ${replyClass}" data-index="${index}" data-id="${comment.id}">
                 <div class="comment-header">
@@ -106,7 +121,7 @@ function loadCommentsWithLoader(commentsLoadingEL, ulEL) {
           ulEL,
           replyingTo,
           localLikes,
-          loadingLikes
+          loadingLikes,
         );
         console.log("✨ Комментарии загружены");
       } else {
@@ -144,45 +159,28 @@ export function initApp(
   errorMessage,
   commentsLoadingEL,
   addLoadingEL,
-  formEL
+  formEL,
 ) {
   console.log("🎬 Начинаю инициализацию...");
 
-  // Сохраняем ссылки на элементы формы
   window.nameEL = nameEL;
   window.commentsEL = commentsEL;
 
-  // Восстанавливаем данные формы если они есть
-  nameEL.value = formData.name;
+  if (nameEL) {
+    nameEL.value = formData.name;
+  }
   commentsEL.value = formData.text;
 
-  // Слушаем ввод в форму для сохранения данных
-  nameEL.addEventListener("input", () => {
-    formData.name = nameEL.value;
-  });
+  if (nameEL) {
+    nameEL.addEventListener("input", () => {
+      formData.name = nameEL.value;
+    });
+  }
 
   commentsEL.addEventListener("input", () => {
     formData.text = commentsEL.value;
   });
 
-  // Проверяем, что все элементы существуют
-  if (!commentsLoadingEL) {
-    console.error("❌ commentsLoadingEL не передан в initApp");
-  } else {
-    console.log("✅ commentsLoadingEL найден");
-  }
-  if (!addLoadingEL) {
-    console.error("❌ addLoadingEL не передан в initApp");
-  } else {
-    console.log("✅ addLoadingEL найден");
-  }
-  if (!formEL) {
-    console.error("❌ formEL не передан в initApp");
-  } else {
-    console.log("✅ formEL найден");
-  }
-
-  // Показываем то, что есть
   renderCommentsWithLikes(comments, ulEL, replyingTo, localLikes, loadingLikes);
   massageEL.disabled = true;
 
@@ -203,11 +201,13 @@ export function initApp(
         ulEL,
         replyingTo,
         localLikes,
-        loadingLikes
+        loadingLikes,
       ),
 
     addComment: (nameText, commentText) => {
       console.log("➕ Добавляю комментарий от", nameText);
+
+      const userName = nameText;
 
       if (!formEL || !addLoadingEL) {
         console.error("❌ Форма или лоадер не найдены");
@@ -237,20 +237,21 @@ export function initApp(
         finalCommentText = `${parentComment.name}: ${parentComment.text}\n\n${commentText}`;
       }
 
-      const commentData = {
-        name: nameText,
-        text: finalCommentText,
-      };
-
       // Функция для повторной попытки отправки
       const retryPost = (attempt = 1, maxAttempts = 3) => {
-        return postComment(commentData)
-          .then((newCommentFromApi) => {
-            const commentToAdd = newCommentFromApi || {
+        // Получаем токен авторизации
+        const token = getToken();
+
+        // Отправляем запрос с токеном
+        return postComment(finalCommentText, token)
+          .then((response) => {
+            console.log("✅ Ответ сервера:", response);
+
+            // Создаем локальный комментарий с именем пользователя
+            const commentToAdd = {
               id: Date.now(),
-              name: commentData.name,
-              text: commentData.text,
-              author: { name: commentData.name },
+              name: userName, // Используем имя из localStorage
+              text: finalCommentText,
               date: formattedDate,
               likes: 0,
               isLiked: false,
@@ -260,10 +261,8 @@ export function initApp(
             replyingTo = null;
             commentsEL.placeholder = "Введите ваш комментарий";
 
-            // Очищаем форму только при успехе
-            nameEL.value = "";
+            // Очищаем только поле комментария
             commentsEL.value = "";
-            formData.name = "";
             formData.text = "";
 
             // Показываем форму обратно
@@ -275,7 +274,7 @@ export function initApp(
               ulEL,
               replyingTo,
               localLikes,
-              loadingLikes
+              loadingLikes,
             );
 
             console.log("✅ Комментарий добавлен");
@@ -287,16 +286,22 @@ export function initApp(
             addLoadingEL.style.display = "none";
 
             // Восстанавливаем данные формы
-            nameEL.value = formData.name;
+            if (nameEL) nameEL.value = formData.name;
             commentsEL.value = formData.text;
 
             // Проверяем тип ошибки
+            if (error.message.includes("Требуется авторизация")) {
+              alert("Сессия истекла. Пожалуйста, войдите снова.");
+              window.location.href = "login.html";
+              return Promise.reject(error);
+            }
+
             if (
               error.message.includes("Ошибка сервера") &&
               attempt < maxAttempts
             ) {
               console.log(
-                `🔄 Повторная попытка ${attempt + 1}/${maxAttempts}...`
+                `🔄 Повторная попытка ${attempt + 1}/${maxAttempts}...`,
               );
 
               // Ждём 2 секунды перед повторной попыткой
@@ -311,10 +316,9 @@ export function initApp(
                 userMessage =
                   "Нет интернета. Проверьте соединение и попробуйте снова.";
               } else if (
-                error.message.includes("Имя или комментарий слишком короткие")
+                error.message.includes("должен содержать хотя бы 3 символа")
               ) {
-                userMessage =
-                  "Имя и комментарий должны быть не короче 3 символов.";
+                userMessage = "Комментарий должен содержать хотя бы 3 символа.";
               }
 
               // Показываем alert как требует задание
@@ -343,7 +347,7 @@ export function initApp(
           ulEL,
           replyingTo,
           localLikes,
-          loadingLikes
+          loadingLikes,
         );
 
         return delay(2000).then(() => {
@@ -355,7 +359,7 @@ export function initApp(
             ulEL,
             replyingTo,
             localLikes,
-            loadingLikes
+            loadingLikes,
           );
         });
       }
@@ -370,7 +374,7 @@ export function initApp(
             massageEL,
             errorMessage,
             validation.showError,
-            validation.hideError
+            validation.hideError,
           );
         })
         .catch((error) => {

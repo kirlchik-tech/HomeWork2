@@ -1,0 +1,54 @@
+<html lang="ru">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>Регистрация - Лента комментариев</title>
+    <link rel="stylesheet" href="styles.css" />
+  </head>
+  <body>
+    <div class="container">
+      <div class="register-container">
+        <h1 class="register-title">Регистрация</h1>
+        <form class="register-form" id="registerForm">
+          <input
+            type="text"
+            class="register-input"
+            id="name"
+            placeholder="Ваше имя"
+            required
+          />
+
+          <input
+            type="text"
+            class="register-input"
+            id="login"
+            placeholder="Логин"
+            required
+          />
+
+          <input
+            type="password"
+            class="register-input"
+            id="password"
+            placeholder="Пароль"
+            required
+          />
+
+          <button type="submit" class="register-button" id="registerButton">
+            Зарегистрироваться
+          </button>
+
+          <div class="register-error" id="errorMessage"></div>
+
+          <p class="form-note">
+            Уже есть аккаунт?<a href="login.html" class="login-link">Войти</a>
+          </p>
+
+          <a href="index.html" class="login-link">← Вернуться к комментариям</a>
+        </form>
+      </div>
+    </div>
+
+    <script type="module" src="register.js"></script>
+  </body>
+</html>

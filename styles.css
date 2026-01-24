@@ -201,3 +201,249 @@ body {
   font-size: 18px;
   font-weight: bold;
 }
+
+/* страница авторизации */
+.login-container {
+  max-width: 400px;
+  margin: 100px auto;
+  padding: 40px;
+  background: radial-gradient(
+    75.42% 75.42% at 50% 42.37%,
+    rgba(53, 53, 53, 0) 22.92%,
+    #7334ea 100%
+  );
+  border-radius: 20px;
+  text-align: center;
+}
+
+.login-title {
+  color: #ffffff;
+  margin-bottom: 30px;
+  font-size: 24px;
+}
+
+.login-form {
+  display: flex;
+  flex-direction: column;
+  gap: 20px;
+}
+
+.login-input {
+  padding: 15px;
+  border-radius: 10px;
+  border: none;
+  font-size: 16px;
+  font-family: Helvetica;
+}
+
+.login-button {
+  padding: 15px;
+  background-color: #bcec30;
+  border: none;
+  border-radius: 10px;
+  font-size: 18px;
+  font-weight: bold;
+  cursor: pointer;
+  transition: opacity 0.3s;
+}
+
+.login-button:hover {
+  opacity: 0.9;
+}
+
+.login-error {
+  color: #ff6b6b;
+  margin-top: 10px;
+  display: none;
+}
+
+.back-link {
+  color: #bcec30;
+  margin-top: 20px;
+  display: inline-block;
+  text-decoration: none;
+}
+
+.back-link:hover {
+  text-decoration: underline;
+}
+
+.auth-promo {
+  width: 596px;
+  box-sizing: border-box;
+  background: radial-gradient(
+    75.42% 75.42% at 50% 42.37%,
+    rgba(53, 53, 53, 0) 22.92%,
+    #7334ea 100%
+  );
+  filter: drop-shadow(0px 20px 67px rgba(0, 0, 0, 0.08));
+  border-radius: 20px;
+  padding: 40px 48px;
+  text-align: center;
+  margin: 24px auto 0 auto;
+}
+
+.auth-promo-content {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 20px;
+}
+
+.auth-promo-text {
+  font-size: 24px;
+  color: #ffffff;
+  margin: 0;
+  font-weight: normal;
+}
+
+.auth-promo-button {
+  padding: 16px 40px;
+  background-color: #bcec30;
+  color: #202020;
+  border: none;
+  border-radius: 18px;
+  font-size: 20px;
+  font-weight: bold;
+  cursor: pointer;
+  text-decoration: none;
+  display: inline-block;
+  transition: all 0.3s ease;
+}
+
+.auth-promo-button:hover {
+  opacity: 0.9;
+  transform: scale(1.05);
+}
+
+.auth-promo-register {
+  font-size: 16px;
+  margin-top: 10px;
+}
+
+.auth-promo-register a {
+  color: #bcec30;
+  text-decoration: none;
+  font-weight: bold;
+}
+
+.auth-promo-register a:hover {
+  text-decoration: underline;
+}
+
+.register-container {
+  max-width: 400px;
+  margin: 50px auto;
+  padding: 40px;
+  background: radial-gradient(
+    75.42% 75.42% at 50% 42.37%,
+    rgba(53, 53, 53, 0) 22.92%,
+    #7334ea 100%
+  );
+  border-radius: 20px;
+  text-align: center;
+}
+
+.register-title {
+  color: #ffffff;
+  margin-bottom: 30px;
+  font-size: 24px;
+}
+
+.register-form {
+  display: flex;
+  flex-direction: column;
+  gap: 15px;
+}
+
+.register-input {
+  padding: 15px;
+  border-radius: 10px;
+  border: none;
+  font-size: 16px;
+  font-family: Helvetica;
+}
+
+.register-button {
+  padding: 15px;
+  background-color: #bcec30;
+  border: none;
+  border-radius: 10px;
+  font-size: 18px;
+  font-weight: bold;
+  cursor: pointer;
+  margin-top: 10px;
+}
+
+.register-button:hover {
+  opacity: 0.9;
+}
+
+.register-error {
+  color: #ff6b6b;
+  margin-top: 10px;
+  display: none;
+}
+
+.login-link {
+  color: #bcec30;
+  margin-top: 20px;
+  display: inline-block;
+  text-decoration: none;
+}
+
+.login-link:hover {
+  text-decoration: underline;
+}
+
+.form-note {
+  color: #cccccc;
+  font-size: 14px;
+  margin-top: 20px;
+}
+
+/*  Стили для информации о пользователе */
+.user-info {
+  color: #bcec30;
+  text-align: center;
+  margin: 10px 0 20px 0;
+  font-size: 14px;
+  padding: 8px 16px;
+  background: rgba(188, 236, 48, 0.1);
+  border-radius: 8px;
+  display: inline-block;
+}
+
+/* Ссылки на регистрацию/вход */
+.form-note {
+  color: #cccccc;
+  font-size: 14px;
+  margin-top: 20px;
+  text-align: center;
+}
+
+.form-note a {
+  color: #bcec30;
+  text-decoration: none;
+}
+
+.form-note a:hover {
+  text-decoration: underline;
+}
+
+/* Улучшенные стили для страниц авторизации */
+.login-container,
+.register-container {
+  animation: fadeIn 0.5s ease-in;
+}
+
+@keyframes fadeIn {
+  from {
+    opacity: 0;
+    transform: translateY(-10px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}

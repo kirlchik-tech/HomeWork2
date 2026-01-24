@@ -1,0 +1,48 @@
+<!doctype html>
+<html lang="ru">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>Авторизация - Лента комментариев</title>
+    <link rel="stylesheet" href="styles.css" />
+  </head>
+  <body>
+    <div class="container">
+      <div class="login-container">
+        <h1 class="login-title">Вход в систему</h1>
+        <form class="login-form" id="loginForm">
+          <input
+            type="text"
+            class="login-input"
+            id="login"
+            placeholder="Логин"
+            required
+          />
+
+          <input
+            type="password"
+            class="login-input"
+            id="password"
+            placeholder="Пароль"
+            required
+          />
+
+          <button type="submit" class="login-button" id="loginButton">
+            Войти
+          </button>
+
+          <div class="login-error" id="errorMessage"></div>
+
+          <a href="index.html" class="back-link">← Вернуться к комментариям</a>
+        </form>
+
+        <p class="form-note">
+          Нет аккаунта?
+          <a href="register.html" class="login-link">Зарегистрироваться</a>
+        </p>
+      </div>
+    </div>
+
+    <script type="module" src="login.js"></script>
+  </body>
+</html>

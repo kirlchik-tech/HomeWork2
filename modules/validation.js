@@ -23,37 +23,37 @@ export function validateAll(
   massageEL,
   errorMessage,
   showError,
-  hideError
+  hideError,
 ) {
-  const nameText = nameEL.value.trim();
+  // Проверяем, что commentsEL существует
+  if (!commentsEL) {
+    console.error("commentsEL не найден в validateAll");
+    return false;
+  }
+
   const commentText = commentsEL.value.trim();
   let isValid = true;
 
-  // Сбрасываем всё
-  hideError(errorMessage, nameEL);
+  // Сбрасываем ошибки
   hideError(errorMessage, commentsEL);
   if (errorMessage) {
     errorMessage.textContent = "";
   }
 
-  // Проверка имени
-  if (nameText.length === 0) {
-    showError(errorMessage, nameEL, "Напишите своё имя!");
-    isValid = false;
-  }
-
-  // Проверка комментария
+  // Проверка комментария (основное требование)
   if (commentText.length === 0) {
     showError(errorMessage, commentsEL, "Напишите комментарий!");
     isValid = false;
+  } else if (commentText.length < 3) {
+    showError(
+      errorMessage,
+      commentsEL,
+      "Комментарий должен содержать хотя бы 3 символа!",
+    );
+    isValid = false;
   }
 
-  // Если оба поля пустые
-  if (nameText.length === 0 && commentText.length === 0) {
-    showError(errorMessage, nameEL, "Заполните имя и комментарий!");
-  }
-
-  // Разрешаем кнопку только если все проверки пройдены
+  // Разрешаем кнопку только если проверка пройдена
   if (massageEL) {
     massageEL.disabled = !isValid;
   }

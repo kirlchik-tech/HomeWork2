@@ -1,3 +1,5 @@
+import { getUser } from "./auth.js";
+
 export function initLikeHandlers(ulEL, app) {
   ulEL.addEventListener("click", (event) => {
     const target = event.target;
@@ -5,7 +7,6 @@ export function initLikeHandlers(ulEL, app) {
     if (target.classList.contains("like-button")) {
       const index = parseInt(target.getAttribute("data-index"));
 
-      // Безопасная проверка
       if (app && typeof app.updateCommentLike === "function") {
         app.updateCommentLike(index);
       }
@@ -48,62 +49,45 @@ export function initFormHandlers(nameEL, commentsEL, massageEL, app) {
     return false;
   };
 
-  nameEL.addEventListener("input", validate);
-  commentsEL.addEventListener("input", validate);
+  // Проверяем, существует ли nameEL, перед добавлением обработчика
+  if (nameEL) {
+    nameEL.addEventListener("input", validate);
+  }
 
-  commentsEL.addEventListener("input", function () {
-    const replyingTo = app.getReplyingTo ? app.getReplyingTo() : null;
-    if (this.value.trim() === "" && replyingTo !== null) {
-      app.setReplyingTo && app.setReplyingTo(null);
-      commentsEL.placeholder = "Введите ваш комментарий";
-      app.render && app.render();
-    }
-  });
+  // commentsEL всегда должен существовать, но проверка не помешает
+  if (commentsEL) {
+    commentsEL.addEventListener("input", validate);
+  }
 
-  massageEL.addEventListener("click", () => {
-    if (validate()) {
-      const nameText = nameEL.value.trim();
-      const commentText = commentsEL.value.trim();
-
-      if (nameText && commentText) {
-        // addComment теперь async, ждем его завершения
-        const result = app.addComment(nameText, commentText);
-        if (result && typeof result.then === "function") {
-          result
-            .then(() => {
-              nameEL.value = "";
-              commentsEL.value = "";
-              massageEL.disabled = true;
-              app.hideFormError && app.hideFormError();
-            })
-            .catch((error) => {
-              console.error("Ошибка при добавлении:", error);
-            });
-        } else {
-          // Для совместимости, если addComment не async
-          nameEL.value = "";
-          commentsEL.value = "";
-          massageEL.disabled = true;
-          app.hideFormError && app.hideFormError();
-        }
+  // Обработчик для очистки ответа при пустом поле
+  if (commentsEL) {
+    commentsEL.addEventListener("input", function () {
+      const replyingTo = app.getReplyingTo ? app.getReplyingTo() : null;
+      if (this.value.trim() === "" && replyingTo !== null) {
+        app.setReplyingTo && app.setReplyingTo(null);
+        commentsEL.placeholder = "Введите ваш комментарий";
+        app.render && app.render();
       }
-    }
-  });
+    });
+  }
 
-  commentsEL.addEventListener("keypress", function (event) {
-    if (event.key === "Enter" && !event.shiftKey) {
-      event.preventDefault();
+  // ОДИН обработчик клика для кнопки отправки
+  if (massageEL) {
+    massageEL.addEventListener("click", () => {
       if (validate()) {
-        const nameText = nameEL.value.trim();
-        const commentText = commentsEL.value.trim();
+        // Получаем имя пользователя из localStorage
+        const user = getUser();
+        const userName = user ? user.name : "Аноним";
+        const commentText = commentsEL ? commentsEL.value.trim() : "";
 
-        if (nameText && commentText) {
-          const result = app.addComment(nameText, commentText);
+        if (commentText) {
+          const result = app.addComment(userName, commentText);
           if (result && typeof result.then === "function") {
             result
               .then(() => {
-                nameEL.value = "";
-                commentsEL.value = "";
+                // Очищаем только поле комментария
+                if (nameEL) nameEL.value = "";
+                if (commentsEL) commentsEL.value = "";
                 massageEL.disabled = true;
                 app.hideFormError && app.hideFormError();
               })
@@ -111,21 +95,58 @@ export function initFormHandlers(nameEL, commentsEL, massageEL, app) {
                 console.error("Ошибка при добавлении:", error);
               });
           } else {
-            nameEL.value = "";
-            commentsEL.value = "";
+            // Для совместимости, если addComment не async
+            if (nameEL) nameEL.value = "";
+            if (commentsEL) commentsEL.value = "";
             massageEL.disabled = true;
             app.hideFormError && app.hideFormError();
           }
         }
       }
-    }
-  });
+    });
+  }
 
+  // Обработчик Enter для отправки комментария
+  if (commentsEL) {
+    commentsEL.addEventListener("keypress", function (event) {
+      if (event.key === "Enter" && !event.shiftKey) {
+        event.preventDefault();
+        if (validate()) {
+          const user = getUser();
+          const userName = user ? user.name : "Аноним";
+          const commentText = commentsEL.value.trim();
+
+          if (commentText) {
+            const result = app.addComment(userName, commentText);
+            if (result && typeof result.then === "function") {
+              result
+                .then(() => {
+                  if (nameEL) nameEL.value = "";
+                  commentsEL.value = "";
+                  massageEL.disabled = true;
+                  app.hideFormError && app.hideFormError();
+                })
+                .catch((error) => {
+                  console.error("Ошибка при добавлении:", error);
+                });
+            } else {
+              if (nameEL) nameEL.value = "";
+              commentsEL.value = "";
+              massageEL.disabled = true;
+              app.hideFormError && app.hideFormError();
+            }
+          }
+        }
+      }
+    });
+  }
+
+  // Обработчик Escape для отмены ответа
   document.addEventListener("keydown", function (event) {
     const replyingTo = app.getReplyingTo ? app.getReplyingTo() : null;
     if (event.key === "Escape" && replyingTo !== null) {
       app.setReplyingTo && app.setReplyingTo(null);
-      commentsEL.placeholder = "Введите ваш комментарий";
+      if (commentsEL) commentsEL.placeholder = "Введите ваш комментарий";
       app.render && app.render();
     }
   });

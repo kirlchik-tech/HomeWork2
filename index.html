@@ -20,12 +20,6 @@
         </div>
 
         <div id="comment-form" class="add-form">
-          <input
-            type="text"
-            id="name"
-            class="add-form-name"
-            placeholder="Введите ваше имя"
-          />
           <textarea
             type="textarea"
             id="comments"
@@ -38,7 +32,25 @@
           </div>
           <div id="errorMessage" class="error-message"></div>
         </div>
+
+        <div id="login-prompt" class="auth-promo">
+          <div class="auth-promo-content">
+            <p class="auth-promo-text">
+              Чтобы добавить комментарий, войдите в систему
+            </p>
+            <a href="login.html" class="auth-promo-button"
+              >Войти / Зарегистрироваться</a
+            >
+            <p class="auth-promo-register">
+              Нет аккаунта?
+              <a href="register.html">Зарегистрируйтесь</a>
+              всего за минуту!
+            </p>
+          </div>
+        </div>
       </div>
+
+      <!-- Ссылка для неавторизованных пользователей -->
 
       <script type="module" src="main.js"></script>
     </body>
