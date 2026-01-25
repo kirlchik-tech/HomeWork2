@@ -1,6 +1,6 @@
 import { comments, setComments } from "./data.js";
 import { showError } from "./validation.js";
-import { fetchComments, postComment } from "./api.js";
+import { fetchComments, postComment, toggleLike } from "./api.js";
 import { delay } from "./utils.js";
 import { getToken, getUser } from "./auth.js";
 
@@ -29,23 +29,27 @@ function renderCommentsWithLikes(
   comments,
   ulEL,
   replyingTo,
-  localLikes,
+  localLikes, // Этот параметр больше не нужен, но оставим для совместимости
   loadingLikes = {},
 ) {
   const commentHTML = comments
     .map((comment, index) => {
       const isLikeLoading = loadingLikes[comment.id] || false;
-      const hasLocalLike = localLikes[comment.id] || false;
+
+      const hasLikeFromServer = comment.isLiked || false;
+
       const replyClass = replyingTo === index ? "comment-replying" : "";
 
       const likeButtonClass = isLikeLoading
         ? "like-button -loading-like"
-        : hasLocalLike
+        : hasLikeFromServer
           ? "like-button -active-like"
           : "like-button";
 
       const disabledAttr = isLikeLoading ? "disabled" : "";
-      const totalLikes = comment.likes + (hasLocalLike ? 1 : 0);
+
+      // Используем likes из комментария (с сервера)
+      const totalLikes = comment.likes || 0;
 
       // Безопасное отображение с помощью escapeHtml
       const displayName = escapeHtml(comment.name || "");
@@ -181,7 +185,7 @@ export function initApp(
     formData.text = commentsEL.value;
   });
 
-  renderCommentsWithLikes(comments, ulEL, replyingTo, localLikes, loadingLikes);
+  renderCommentsWithLikes(comments, ulEL, replyingTo, {}, loadingLikes);
   massageEL.disabled = true;
 
   // Загружаем из API с лоадером
@@ -247,38 +251,22 @@ export function initApp(
           .then((response) => {
             console.log("✅ Ответ сервера:", response);
 
-            // Создаем локальный комментарий с именем пользователя
-            const commentToAdd = {
-              id: Date.now(),
-              name: userName, // Используем имя из localStorage
-              text: finalCommentText,
-              date: formattedDate,
-              likes: 0,
-              isLiked: false,
-            };
-
-            comments.push(commentToAdd);
-            replyingTo = null;
-            commentsEL.placeholder = "Введите ваш комментарий";
-
-            // Очищаем только поле комментария
-            commentsEL.value = "";
-            formData.text = "";
-
-            // Показываем форму обратно
+            // 1. Показываем форму обратно
             formEL.style.display = "block";
             addLoadingEL.style.display = "none";
 
-            renderCommentsWithLikes(
-              comments,
-              ulEL,
-              replyingTo,
-              localLikes,
-              loadingLikes,
-            );
+            // 2. Очищаем поле комментария
+            commentsEL.value = "";
+            formData.text = "";
+            replyingTo = null;
+            commentsEL.placeholder = "Введите ваш комментарий";
 
-            console.log("✅ Комментарий добавлен");
-            return commentToAdd.id;
+            return loadCommentsWithLoader(commentsLoadingEL, ulEL).then(() => {
+              console.log(
+                "✅ Комментарии перезагружены после добавления нового",
+              );
+              return "success";
+            });
           })
           .catch((error) => {
             // Показываем форму обратно при ошибке
@@ -340,7 +328,14 @@ export function initApp(
     updateCommentLike: (index) => {
       if (index >= 0 && index < comments.length) {
         const comment = comments[index];
+        const token = getToken();
 
+        if (!token) {
+          alert("Чтобы ставить лайки, нужно авторизоваться!");
+          return Promise.reject("Нет токена");
+        }
+
+        // 1. Показываем состояние загрузки
         loadingLikes[comment.id] = true;
         renderCommentsWithLikes(
           comments,
@@ -350,18 +345,43 @@ export function initApp(
           loadingLikes,
         );
 
-        return delay(2000).then(() => {
-          localLikes[comment.id] = !localLikes[comment.id];
-          loadingLikes[comment.id] = false;
+        // 2. Отправляем запрос на сервер
+        return toggleLike(comment.id, token)
+          .then((result) => {
+            // 3. Убираем локальную логику! Используем только данные с сервера
+            loadingLikes[comment.id] = false;
 
-          renderCommentsWithLikes(
-            comments,
-            ulEL,
-            replyingTo,
-            localLikes,
-            loadingLikes,
-          );
-        });
+            // 4. Обновляем комментарий в массиве comments данными с сервера
+            const commentIndex = comments.findIndex((c) => c.id === comment.id);
+            if (commentIndex !== -1) {
+              comments[commentIndex].likes = result.likes;
+              comments[commentIndex].isLiked = result.isLiked;
+            }
+
+            renderCommentsWithLikes(
+              comments,
+              ulEL,
+              replyingTo,
+              {},
+              loadingLikes,
+            );
+
+            console.log(
+              `✅ Лайк обновлен: likes=${result.likes}, isLiked=${result.isLiked}`,
+            );
+          })
+          .catch((error) => {
+            loadingLikes[comment.id] = false;
+            renderCommentsWithLikes(
+              comments,
+              ulEL,
+              replyingTo,
+              localLikes,
+              loadingLikes,
+            );
+            console.error("❌ Ошибка при лайке:", error);
+            alert(error.message || "Ошибка при установке лайка");
+          });
       }
     },
 
